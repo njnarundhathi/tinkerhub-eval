@@ -1,0 +1,14 @@
+{
+  "name": "eval-platform",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "node server/index.js",
+    "client": "cd client && npm run dev",
+    "setup": "cd server && npm install && cd ../client && npm install",
+    "seed": "node server/seed.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
