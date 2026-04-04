@@ -1,0 +1,106 @@
+// ════════════════════════════════════════════════════════════════
+// TinkerHub Evaluation — Shared State API (backed by Airtable)
+// ════════════════════════════════════════════════════════════════
+//
+// One-time Airtable setup (takes ~1 minute):
+//   1. Open your Airtable base (appdFV7VvqOIlQ36v)
+//   2. Create a new table called exactly:  Eval Config
+//   3. Add one field called:  Config  (type: Long text)
+//   4. Leave the table empty — the API creates the first record automatically
+//
+// No new env vars needed — uses the same AIRTABLE_PAT and
+// AIRTABLE_BASE_ID you already set in Vercel.
+// ════════════════════════════════════════════════════════════════
+
+const BASE_ID = process.env.AIRTABLE_BASE_ID || 'appdFV7VvqOIlQ36v';
+const PAT     = process.env.AIRTABLE_PAT;
+
+// Use the table name (URL-encoded) — safer than the table ID here
+const TABLE   = 'Eval%20Config';
+const AT_URL  = `https://api.airtable.com/v0/${BASE_ID}/${TABLE}`;
+
+const headers = () => ({
+  'Authorization':  `Bearer ${PAT}`,
+  'Content-Type':   'application/json'
+});
+
+// Fetch the single config record (returns null if table is empty)
+async function getRecord() {
+  const resp = await fetch(`${AT_URL}?maxRecords=1&fields%5B%5D=Config`, {
+    headers: headers()
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Airtable ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.records?.[0] ?? null;
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin',  '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  if (!PAT) {
+    // Airtable not configured yet — fall back gracefully
+    if (req.method === 'GET') return res.json({ _notConfigured: true });
+    return res.json({ ok: true, _notConfigured: true });
+  }
+
+  // ── GET: return current shared state ─────────────────────────
+  if (req.method === 'GET') {
+    try {
+      const record = await getRecord();
+      if (!record?.fields?.Config) return res.json({ _empty: true });
+      return res.json(JSON.parse(record.fields.Config));
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // ── POST: save shared state ───────────────────────────────────
+  if (req.method === 'POST') {
+    try {
+      const body    = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      body._savedAt = Date.now();
+
+      // Strip the heavy `raw` field from apps before storing —
+      // raw contains all the long-form text answers and would blow the
+      // Airtable 100K character limit. It stays in each device's localStorage.
+      const appsToStore = (body.apps || []).map(a => {
+        const { raw: _raw, ...rest } = a;
+        return rest;
+      });
+
+      const payload = JSON.stringify({ ...body, apps: appsToStore });
+
+      const record = await getRecord();
+
+      if (record) {
+        // Update existing record
+        const resp = await fetch(`${AT_URL}/${record.id}`, {
+          method:  'PATCH',
+          headers: headers(),
+          body:    JSON.stringify({ fields: { Config: payload } })
+        });
+        if (!resp.ok) throw new Error((await resp.json()).error?.message || 'Patch failed');
+      } else {
+        // First save — create the record
+        const resp = await fetch(AT_URL, {
+          method:  'POST',
+          headers: headers(),
+          body:    JSON.stringify({ fields: { Config: payload } })
+        });
+        if (!resp.ok) throw new Error((await resp.json()).error?.message || 'Create failed');
+      }
+
+      return res.json({ ok: true, savedAt: body._savedAt });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}
