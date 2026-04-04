@@ -1,6 +1,6 @@
 {
-  "outputDirectory": "public",
   "buildCommand": "",
+  "outputDirectory": "eval-platform/client/dist",
   "rewrites": [
     {
       "source": "/api/(.*)",
