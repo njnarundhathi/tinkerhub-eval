@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<styl
+<styl 
 /* ── RESET & BASE ── */ 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; }
@@ -517,7 +517,7 @@ input[type=range] { width: 100%; accent-color: var(--orange); cursor: pointer; m
         </div>
         <div class="tbl-wrap">
           <table>
-            <thead><tr><th>#</th><th>Name</th><th>Campus / Institution</th><th>Year</th><th>Gender</th><th>Status</th><th>Avg Score</th><th></th></tr></thead>
+            <thead><tr><th>#</th><th>Name</th><th>Campus</th><th>Year</th><th>Gender</th><th>Status</th><th>Avg Score</th><th></th></tr></thead>
             <tbody id="apps-tbody"></tbody>
           </table>
         </div>
@@ -629,7 +629,7 @@ const JURY_PW  = 'jury2026';
 const AT_ENDPOINT = '/api/airtable';
 
 // Columns to SKIP in the dynamic display (internal/redundant)
-const SKIP_COLS = new Set(['timestamp','name (from campus name)','campus name (from campus name)']);
+const SKIP_COLS = new Set(['timestamp','name (from campus name)','campus name (from campus name)','added to sheet','thank you mail sent']);
 
 // Columns that are "link" type
 const LINK_COLS = new Set(['your github profile','your portfolio','your linkedin profile','drive link']);
@@ -807,7 +807,8 @@ function detectColumns(headers) {
   }
   return {
     NAME:       find('your name', 'applicant name', 'full name'),
-    CAMPUS:     find('campus name'),
+    CAMPUS:     find('name (from campus'),
+    CAMPUS_TYPE:find('type (from campus', 'campus type', 'college type'),
     INSTITUTION:find('institution name', 'college name', 'institution'),
     CONFIRM:    find('i understand', 'cannot hold', 'other positions'),
     EMAIL:      find('email'),
@@ -1053,6 +1054,7 @@ function processApplicationRows(records) {
       airtableId,
       name: raw[cm.NAME] || '',
       campus: raw[cm.CAMPUS] || '',
+      campusType: raw[cm.CAMPUS_TYPE] || '',
       institution: raw[cm.INSTITUTION] || '',
       email: raw[cm.EMAIL] || '',
       gender: raw[cm.GENDER] || '',
@@ -1375,7 +1377,7 @@ function renderAppsTable() {
     return `<tr>
       <td class="text-muted text-xs">${i+1}</td>
       <td><div class="fw-600">${esc(app.name)||'—'}</div><div class="text-xs text-muted">${esc(app.email)}</div></td>
-      <td><div>${esc(app.campus||app.institution||'—')}</div></td>
+      <td><div>${esc(app.campus||'—')}</div></td>
       <td><span class="pdot pdot-${app.priority}"></span>${app.year||'—'}</td>
       <td>${app.gender?esc(app.gender):'—'}</td>
       <td>${sb}</td>
@@ -1410,7 +1412,7 @@ function buildDynamicFields(app) {
     const lines = [];
     if (app.name) lines.push(fb('Name', app.name));
     if (app.campus) lines.push(fb('Campus', app.campus));
-    if (app.institution) lines.push(fb('Institution', app.institution));
+    if (app.campusType) lines.push(fb('Campus Type', app.campusType));
     if (app.email) lines.push(fb('Email', app.email));
     if (app.gender) lines.push(fb('Gender', app.gender));
     if (app.year) lines.push(fb('Graduation Year', String(app.year)));
@@ -1484,7 +1486,7 @@ function renderResultsTable(filter) {
     return `<tr>
       <td><strong>${i+1}</strong></td>
       <td><div class="fw-600">${esc(app.name)}</div><div class="text-xs text-muted">${esc(app.email)}</div></td>
-      <td>${esc(app.campus||app.institution||'—')}</td>
+      <td>${esc(app.campus||'—')}</td>
       <td>${app.year||'—'}</td>
       <td>${r.rawAvg.toFixed(2)}</td>
       <td><strong>${r.normAvg.toFixed(2)}</strong></td>
@@ -1578,12 +1580,14 @@ function renderPending() {
   }
   cont.innerHTML = apps.map(app => {
     const gu = ghUser(app.github);
+    const campusCount = app.campus ? S.apps.filter(a => a.campus === app.campus).length : 0;
+    const campusMeta = [app.campus||'—', app.campusType, campusCount > 1 ? `${campusCount} applicants from this campus` : null].filter(Boolean).join(' · ');
     const yearBadge = app.year ? `<span class="badge badge-${app.priority==='high'?'green':app.priority==='medium'?'orange':'gray'}">${app.year}</span>` : '';
     return `<div class="app-card" onclick="openEval(${app.id})">
       <div class="flex justify-between items-center flex-wrap gap-2">
         <div>
           <div class="fw-600">${esc(app.name)||'—'}</div>
-          <div class="text-sm text-muted mt-1">${esc(app.campus||app.institution||'—')}</div>
+          <div class="text-sm text-muted mt-1">${esc(campusMeta)}</div>
         </div>
         <div class="flex gap-2 items-center flex-wrap">
           ${yearBadge}
@@ -1609,7 +1613,7 @@ function renderDone() {
       <div class="flex justify-between items-center flex-wrap gap-2">
         <div>
           <div class="fw-600">${esc(app.name)}</div>
-          <div class="text-sm text-muted">${esc(app.campus||app.institution||'—')}</div>
+          <div class="text-sm text-muted">${esc(app.campus||'—')}${app.campusType ? ' · '+esc(app.campusType) : ''}</div>
         </div>
         <div class="flex gap-2 items-center">
           <span class="badge badge-green">${ev.score} / 7</span>
@@ -1654,7 +1658,7 @@ function openEval(appId) {
         <div class="flex justify-between items-start flex-wrap gap-3">
           <div>
             <h2 style="font-size:1.2rem">${esc(app.name||'—')}</h2>
-            <div class="text-sm text-muted mt-1">${esc(app.campus||app.institution||'—')}</div>
+            <div class="text-sm text-muted mt-1">${esc(app.campus||'—')}${app.campusType ? ' · <em>'+esc(app.campusType)+'</em>' : ''}${app.campus && S.apps.filter(a=>a.campus===app.campus).length>1 ? ' · '+S.apps.filter(a=>a.campus===app.campus).length+' applicants from this campus' : ''}</div>
           </div>
           <div class="flex gap-2 flex-wrap">
             ${yearLabel ? `<span class="badge badge-${app.priority==='high'?'green':app.priority==='medium'?'orange':'gray'}">${yearLabel}</span>` : ''}
@@ -1714,8 +1718,7 @@ function buildJuryFields(app) {
     return `<div class="card">
       <div class="section-head">Applicant Details</div>
       ${app.name ? ab('Name', app.name) : ''}
-      ${app.campus ? ab('Campus', app.campus) : ''}
-      ${app.institution ? ab('Institution', app.institution) : ''}
+      ${app.campus ? ab('Campus', app.campus + (app.campusType ? ' · ' + app.campusType : '')) : ''}
       ${app.gender ? ab('Gender', app.gender) : ''}
       ${app.year ? ab('Graduation Year', String(app.year)) : ''}
     </div>`;
