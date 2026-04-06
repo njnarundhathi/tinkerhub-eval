@@ -629,7 +629,7 @@ const JURY_PW  = 'jury2026';
 const AT_ENDPOINT = '/api/airtable';
 
 // Columns to SKIP in the dynamic display (internal/redundant)
-const SKIP_COLS = new Set(['timestamp','name (from campus name)','campus name (from campus name)','added to sheet','thank you mail sent']);
+const SKIP_COLS = new Set(['_airtable_id','timestamp','name (from campus name)','campus name (from campus name)','added to sheet','thank you mail sent','eval score','eval status','eval notes']);
 
 // Columns that are "link" type
 const LINK_COLS = new Set(['your github profile','your portfolio','your linkedin profile','drive link']);
@@ -663,7 +663,9 @@ function applyState(d) {
 
   S.headers = d.headers || S.headers || [];
   S.jury = d.jury || []; S.assignments = d.assignments || {};
-  S.evals = d.evals || {}; S.colMap = d.colMap || {};
+  S.evals = d.evals || {};
+  // Always recompute colMap from current headers to avoid stale indices
+  S.colMap = S.headers.length ? detectColumns(S.headers) : (d.colMap || {});
 
   S.apps = (d.apps || S.apps || []).map(a => ({
     ...a,
@@ -1468,16 +1470,17 @@ function rTab(t) {
 function renderResultsTable(filter) {
   let items = S.apps.filter(a=>!a.isRejected)
     .map(app => ({app, r: appResult(app.id)}))
-    .filter(({r}) => r && r.complete);
-  if (filter==='shortlisted') items = items.filter(({r}) => r.normAvg > 3);
-  else if (filter==='ideal')  items = items.filter(({r}) => r.normAvg > 5);
+    .filter(({r}) => r); // show any app with at least 1 eval
+  if (filter==='shortlisted') items = items.filter(({r}) => r.complete && r.normAvg > 3);
+  else if (filter==='ideal')  items = items.filter(({r}) => r.complete && r.normAvg > 5);
   else if (filter==='flagged')items = items.filter(({r}) => r.flagged);
   items.sort((a,b) => b.r.normAvg - a.r.normAvg);
   const tbody = document.getElementById('results-tbody');
   tbody.innerHTML = items.map(({app,r},i) => {
     const jids = S.assignments[app.id] || [];
     const sc = jids.map(jid => { const ev=getEval(app.id,jid); return ev?`${ev.score}/7`:'—'; });
-    const sb = r.normAvg>5 ? '<span class="badge badge-green">Ideal</span>'
+    const sb = !r.complete ? '<span class="badge badge-gray">In Progress</span>'
+             : r.normAvg>5 ? '<span class="badge badge-green">Ideal</span>'
              : r.normAvg>3 ? '<span class="badge badge-blue">Shortlisted</span>'
              : '<span class="badge badge-gray">Below threshold</span>';
     const flag = r.flagged ? ' <span class="badge badge-yellow">3rd Eval</span>' : '';
@@ -1487,12 +1490,12 @@ function renderResultsTable(filter) {
       <td>${esc(app.campus||'—')}</td>
       <td>${app.year||'—'}</td>
       <td>${r.rawAvg.toFixed(2)}</td>
-      <td><strong>${r.normAvg.toFixed(2)}</strong></td>
+      <td><strong>${r.complete ? r.normAvg.toFixed(2) : '—'}</strong></td>
       <td>${sc[0]||'—'}</td><td>${sc[1]||'—'}</td><td>${sc[2]||'—'}</td>
       <td>${sb}${flag}</td>
     </tr>`;
   }).join('');
-  if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">No results yet.</div></td></tr>';
+  if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">No results yet. Evaluations will appear here as jury members submit scores.</div></td></tr>';
 }
 
 // ══════════════════════════════════════════════
@@ -1518,7 +1521,7 @@ async function dlShortlist() {
   pushAllResultsToAirtable().then(ok => { if (ok) showToast('Results updated in Airtable.'); });
 }
 async function dlAll() {
-  const items = S.apps.filter(a=>!a.isRejected).map(a=>({app:a,r:appResult(a.id)})).filter(({r})=>r&&r.complete).sort((a,b)=>b.r.normAvg-a.r.normAvg);
+  const items = S.apps.filter(a=>!a.isRejected).map(a=>({app:a,r:appResult(a.id)})).filter(({r})=>r).sort((a,b)=>b.r.normAvg-a.r.normAvg);
   exportCSV(items, 'tinkerhub_all_results.csv');
   pushAllResultsToAirtable().then(ok => { if (ok) showToast('Results updated in Airtable.'); });
 }
@@ -1725,6 +1728,7 @@ function buildJuryFields(app) {
 
   // Columns hidden from jury view (shown in header strip, irrelevant, or sensitive)
   function skipInJury(hl) {
+    if (hl === '_airtable_id') return true;
     if (hl.startsWith('timestamp')) return true;
     if (hl.includes('name (from campus')) return true;
     if (hl.includes('i understand') && hl.includes('cannot hold')) return true;
@@ -1738,6 +1742,10 @@ function buildJuryFields(app) {
     if (hl.includes('portfolio')) return true;
     if (hl.includes('linkedin')) return true;
     if (hl.includes('drive link')) return true;
+    // Internal/admin-only Airtable fields
+    if (hl.includes('added to sheet')) return true;
+    if (hl.includes('thank you mail')) return true;
+    if (hl.includes('eval score') || hl.includes('eval status') || hl.includes('eval notes')) return true;
     return false;
   }
 
