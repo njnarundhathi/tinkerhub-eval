@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TinkerHub Campus Evaluation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ── RESET & BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.55;
+}
+
+/* ── DESIGN TOKENS ── */
+:root {
+  --orange: #f97316;
+  --orange-dk: #ea580c;
+  --orange-lt: #fff8f2;
+  --surface: #ffffff;
+  --bg: #faf8f5;
+  --border: #ede9e4;
+  --border2: #d6cfc9;
+  --text: #1c1917;
+  --muted: #79716b;
+  --light: #a8a29d;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --green-bd: #bbf7d0;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --red-bd: #fecaca;
+  --yellow: #d97706;
+  --yellow-bg: #fffbeb;
+  --yellow-bd: #fde68a;
+  --blue: #2563eb;
+  --blue-bg: #eff6ff;
+  --blue-bd: #bfdbfe;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow: 0 1px 4px rgba(28,25,23,0.07), 0 1px 2px rgba(28,25,23,0.04);
+  --shadow-md: 0 4px 20px rgba(28,25,23,0.09), 0 2px 6px rgba(28,25,23,0.05);
+}
+
+/* ── TYPOGRAPHY ── */
+h1 { font-size: 1.6rem; font-weight: 700; }
+h2 { font-size: 1.2rem; font-weight: 600; }
+h3 { font-size: 1rem; font-weight: 600; }
+p { color: var(--muted); font-size: 0.9rem; }
+
+/* ── LAYOUT ── */
+.page-wrap { max-width: 1320px; margin: 0 auto; padding: 24px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+
+/* ── SURFACE / CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.card + .card { margin-top: 16px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.card-title { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+
+/* ── NAV ── */
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 0 var(--border), 0 2px 8px rgba(28,25,23,0.04);
+}
+.nav-brand { font-size: 1rem; font-weight: 700; color: var(--orange); letter-spacing: -0.3px; }
+.nav-links { display: flex; gap: 4px; }
+.nav-btn {
+  padding: 7px 16px;
+  border-radius: 99px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-btn:hover { background: var(--bg); color: var(--text); }
+.nav-btn.active { background: var(--orange-lt); color: var(--orange); font-weight: 600; }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--orange), var(--orange-dk));
+  color: #fff;
+  font-size: 0.8rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(249,115,22,0.3);
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
+  border-radius: 99px;
+  font-size: 0.875rem; font-weight: 500;
+  cursor: pointer; border: none;
+  transition: all 0.18s;
+  font-family: inherit;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.btn-primary { background: var(--orange); color: #fff; box-shadow: 0 1px 3px rgba(249,115,22,0.25); }
+.btn-primary:hover { background: var(--orange-dk); box-shadow: 0 2px 8px rgba(249,115,22,0.35); transform: translateY(-1px); }
+.btn-outline { background: transparent; border: 1.5px solid var(--border2); color: var(--text); }
+.btn-outline:hover { border-color: var(--orange); color: var(--orange); }
+.btn-ghost { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+.btn-ghost:hover { background: var(--border); }
+.btn-success { background: var(--green); color: #fff; }
+.btn-success:hover { background: #15803d; }
+.btn-sm { padding: 5px 14px; font-size: 0.8rem; }
+.btn-full { width: 100%; justify-content: center; }
+.btn-link { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 0.875rem; padding: 0; font-family: inherit; text-decoration: underline; }
+
+/* ── FORMS ── */
+.fg { margin-bottom: 14px; }
+.fg label { display: block; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 5px; }
+.fg input, .fg select, .fg textarea {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+.fg textarea { resize: vertical; }
+.fg select option { background: var(--surface); }
+
+/* ── BADGES ── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 0.75rem; font-weight: 600;
+  white-space: nowrap;
+}
+.badge-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+.badge-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-bd); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-bd); }
+.badge-blue { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-bd); }
+.badge-orange { background: var(--orange-lt); color: var(--orange); border: 1px solid #fed7aa; }
+.badge-gray { background: #f3f4f6; color: var(--muted); border: 1px solid var(--border); }
+
+/* ── UPLOAD AREA ── */
+.upload-area {
+  border: 2px dashed var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: block;
+}
+.upload-area:hover { border-color: var(--orange); background: var(--orange-lt); }
+.upload-area input[type="file"] { display: none; }
+.upload-icon { font-size: 2rem; margin-bottom: 8px; }
+.upload-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+.upload-sub { font-size: 0.8rem; color: var(--muted); }
+
+/* ── TABLE ── */
+.tbl-wrap { overflow-x: auto; border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+thead { background: #f9fafb; }
+th { padding: 10px 14px; text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #fafbfc; }
+
+/* ── STATS ── */
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s;
+}
+.stat-card:hover { box-shadow: var(--shadow-md); }
+.stat-val { font-size: 2.2rem; font-weight: 700; color: var(--text); line-height: 1; letter-spacing: -1px; }
+.stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 6px; font-weight: 500; }
+
+/* ── WORKFLOW STEPPER ── */
+.stepper { display: flex; gap: 10px; margin-bottom: 28px; }
+.step {
+  flex: 1; padding: 16px 18px; background: var(--surface);
+  border: 1.5px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow); transition: border-color 0.2s, background 0.2s;
+}
+.step-num { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--light); margin-bottom: 5px; }
+.step-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+.step-sub { font-size: 0.75rem; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+.step.done { background: var(--green-bg); border-color: var(--green-bd); }
+.step.done .step-num { color: var(--green); }
+.step.done .step-title { color: var(--green); }
+.step.active { background: var(--orange-lt); border-color: #fcd9b6; }
+.step.active .step-num { color: var(--orange); }
+.step.active .step-title { color: var(--orange); }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+.tab { padding: 9px 18px; font-size: 0.875rem; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; white-space: nowrap; font-family: inherit; background: none; border-top: none; border-left: none; border-right: none; }
+.tab.active { color: var(--orange); border-bottom-color: var(--orange); font-weight: 600; }
+.tab:hover:not(.active) { color: var(--text); }
+
+/* ── PROGRESS BAR ── */
+.prog { display: flex; align-items: center; gap: 8px; }
+.prog-track { flex: 1; height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--orange); border-radius: 99px; transition: width 0.3s; }
+
+/* ── CHART CARDS ── */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; box-shadow: var(--shadow); }
+.chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+
+/* ── EVAL LAYOUT ── */
+.eval-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+.score-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; position: sticky; top: 74px; box-shadow: var(--shadow-md); }
+.score-big { font-size: 3.2rem; font-weight: 800; color: var(--orange); text-align: center; line-height: 1; }
+.score-denom { font-size: 1.2rem; font-weight: 400; color: var(--muted); }
+input[type=range] { width: 100%; accent-color: var(--orange); cursor: pointer; margin: 8px 0; }
+
+/* ── FIELD DISPLAY ── */
+.field-block { margin-bottom: 14px; }
+.field-lbl { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 4px; }
+.field-val { font-size: 0.9rem; color: var(--text); line-height: 1.6; word-break: break-word; }
+.field-val a { color: var(--orange); text-decoration: none; }
+.field-val a:hover { text-decoration: underline; }
+.answer-box { background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+.answer-q { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 6px; }
+.answer-a { font-size: 0.9rem; color: var(--text); line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+
+/* ── APP CARD (jury list) ── */
+.app-card { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; background: var(--surface); transition: border-color 0.15s, box-shadow 0.15s; box-shadow: var(--shadow); }
+.app-card:hover { border-color: var(--orange); box-shadow: var(--shadow-md); }
+
+/* ── SECTION DIVIDER ── */
+.section-head { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); padding-bottom: 8px; border-bottom: 1px solid var(--border); margin: 20px 0 14px; }
+
+/* ── LINKS STRIP ── */
+.links-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+/* ── LOGIN ── */
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(145deg, #faf8f5 0%, #fff3e8 100%); }
+.login-box { background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(28,25,23,0.1); }
+.login-brand { text-align: center; margin-bottom: 30px; }
+.login-brand h1 { color: var(--orange); font-size: 1.4rem; margin-bottom: 4px; letter-spacing: -0.3px; }
+.login-brand p { font-size: 0.85rem; color: var(--muted); }
+.role-tabs { display: flex; background: var(--bg); border-radius: 99px; padding: 4px; margin-bottom: 24px; }
+.role-tab { flex: 1; padding: 8px; text-align: center; border-radius: 99px; cursor: pointer; font-size: 0.875rem; font-weight: 500; color: var(--muted); transition: all 0.18s; user-select: none; }
+.role-tab.active { background: var(--surface); color: var(--orange); font-weight: 600; box-shadow: var(--shadow); }
+.err { color: var(--red); font-size: 0.85rem; margin-top: 10px; display: none; }
+
+/* ── MODAL ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+.modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px; width: 100%; max-width: 660px; max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-md); }
+
+/* ── INFO CALLOUT ── */
+.callout { border-radius: var(--radius); padding: 12px 14px; font-size: 0.875rem; margin-bottom: 14px; }
+.callout-blue { background: var(--blue-bg); border: 1px solid var(--blue-bd); color: var(--blue); }
+.callout-green { background: var(--green-bg); border: 1px solid var(--green-bd); color: var(--green); }
+.callout-yellow { background: var(--yellow-bg); border: 1px solid var(--yellow-bd); color: var(--yellow); }
+
+/* ── MISC UTILS ── */
+.hidden { display: none !important; }
+.flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mt-4 { margin-top: 16px; }
+.mt-6 { margin-top: 24px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.text-sm { font-size: 0.85rem; }
+.text-xs { font-size: 0.75rem; }
+.text-muted { color: var(--muted); }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }
+.text-center { text-align: center; }
+.pdot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 5px; flex-shrink: 0; }
+.pdot-high { background: var(--green); }
+.pdot-medium { background: var(--yellow); }
+.pdot-low { background: var(--light); }
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.5s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+  .eval-layout { grid-template-columns: 1fr; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; }
+  .nav-links { display: none; }
+  .stepper { flex-direction: column; }
+  .step { border-right: 1px solid var(--border); border-bottom: none; }
+  .step:first-child { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .step:last-child { border-radius: 0 0 var(--radius-lg) var(--radius-lg); border-bottom: 1px solid var(--border); }
+  .score-panel { position: static; }
+  .tbl-wrap { -webkit-overflow-scrolling: touch; }
+}
+@media (max-width: 600px) {
+  .page-wrap { padding: 12px; }
+  html { font-size: 14px; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; }
+  .nav { padding: 0 12px; height: 50px; }
+  .nav-brand { font-size: 0.88rem; }
+  .nav-right .text-sm { display: none; }
+  .login-box { padding: 24px 18px; }
+  .stepper { display: none; }
+  .card { padding: 14px; }
+  .score-big { font-size: 2.6rem; }
+  .links-strip { flex-direction: column; }
+  .links-strip .btn { width: 100%; justify-content: center; }
+  table { font-size: 0.78rem; }
+  th, td { padding: 8px 10px; }
+  .app-card { padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-brand">
+      <h1>TinkerHub Campus Evaluation</h1>
+      <p>Campus Leadership Programme 2025</p>
+    </div>
+    <div class="role-tabs">
+      <div class="role-tab active" id="rt-admin" onclick="setRole('admin')">Admin</div>
+      <div class="role-tab" id="rt-jury" onclick="setRole('jury')">Jury Member</div>
+    </div>
+    <div id="form-admin">
+      <div class="fg"><label>Admin Password</label>
+        <input type="password" id="inp-apw" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')adminLogin()">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="adminLogin()">Sign In as Admin</button>
+    </div>
+    <div id="form-jury" class="hidden">
+      <div class="fg"><label>Email Address</label>
+        <input type="email" id="inp-jemail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')juryLogin()">
+      </div>
+      <div class="fg"><label>Password</label>
+        <input type="password" id="inp-jpw" placeholder="jury2026" onkeydown="if(event.key==='Enter')juryLogin()">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="juryLogin()">Sign In</button>
+    </div>
+    <div id="login-err" class="err"></div>
+    <p style="text-align:center;font-size:0.8rem;margin-top:14px;color:var(--muted)">Default jury password: <strong style="color:var(--text)">jury2026</strong></p>
+  </div>
+</div>
+
+<!-- ═══ ADMIN PANEL ═══ -->
+<div id="admin-panel" class="hidden">
+  <nav class="nav">
+    <span class="nav-brand">TinkerHub Campus Evaluation</span>
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="aTab('overview')">Overview</button>
+      <button class="nav-btn" onclick="aTab('applications')">Applications</button>
+      <button class="nav-btn" onclick="aTab('jury')">Jury Progress</button>
+      <button class="nav-btn" onclick="aTab('results')">Results</button>
+    </div>
+    <div class="nav-right">
+      <span class="text-sm text-muted">Admin</span>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page-wrap">
+
+    <!-- OVERVIEW TAB -->
+    <div id="at-overview">
+      <!-- Workflow Stepper -->
+      <div class="stepper" id="stepper"></div>
+
+      <!-- Stats Row -->
+      <div class="grid-5 mb-4" id="stats-row"></div>
+
+      <!-- Upload + Assign (inline when not done) -->
+      <div id="setup-section">
+
+        <!-- Airtable Connection Status (hidden for now) -->
+        <div class="card mb-4 hidden" id="gs-config-card">
+          <div class="card-title mb-1">Airtable Connection</div>
+          <p class="text-sm text-muted mb-2">This hosted version reads directly from your <strong>Evaluation Connect</strong> Airtable table. No configuration needed here — the connection is managed via Vercel environment variables.</p>
+          <div class="callout callout-blue" style="font-size:0.85rem" id="at-status-banner">
+            Checking connection status...
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title mb-3">Step 1 — Load Applications</div>
+            <p style="margin-bottom:14px">Sync from Google Sheets directly, or upload a CSV exported from your sheet. Rows where the leadership confirmation is unticked will be auto-rejected.</p>
+            <button class="btn btn-primary mb-3" onclick="syncFromAirtable()" id="btn-sync-apps" style="width:100%">Sync from Airtable</button>
+            <div style="text-align:center;color:var(--muted);font-size:0.8rem;margin-bottom:10px">— or upload CSV manually —</div>
+            <label class="upload-area" for="fi-apps">
+              <input type="file" id="fi-apps" accept=".csv" onchange="uploadApps(this)">
+              <div class="upload-icon">&#128196;</div>
+              <div class="upload-label">Click to upload applications.csv</div>
+              <div class="upload-sub">Exported from Google Forms / Google Sheet</div>
+            </label>
+            <div id="apps-status" class="mt-3"></div>
+          </div>
+          <div class="card">
+            <div class="card-title mb-3">Step 2 — Upload Jury Members CSV</div>
+            <p style="margin-bottom:14px">Required headers: <strong>Name, Email, Campus Name</strong>. Jury members log in with their email and the default password.</p>
+            <label class="upload-area" for="fi-jury">
+              <input type="file" id="fi-jury" accept=".csv" onchange="uploadJury(this)">
+              <div class="upload-icon">&#128101;</div>
+              <div class="upload-label">Click to upload jury_members.csv</div>
+              <div class="upload-sub">Name &middot; Email &middot; Campus Name</div>
+            </label>
+            <div id="jury-status" class="mt-3"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title mb-2">Step 3 — Auto-Assign Applications to Jury</div>
+          <p style="margin-bottom:14px">Each application gets 2 jury members. Jury members are never assigned applications from their own campus. High-priority applicants (2026 / 2027) are distributed first.</p>
+          <div id="assign-msg" class="mb-3"></div>
+          <div class="flex gap-3 flex-wrap">
+            <button class="btn btn-primary" onclick="doAssign()">Auto-Assign Now</button>
+            <button class="btn btn-ghost" onclick="resetAssign()">Reset Assignments</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Monitoring (always visible once data loaded) -->
+      <div id="live-section" class="hidden">
+        <div class="card-title mb-3 mt-6" style="font-size:1.1rem">Live Monitoring</div>
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-title">Gender Distribution (Active Applicants)</div>
+            <canvas id="c-gender" height="220"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Graduation Year Distribution</div>
+            <canvas id="c-year" height="220"></canvas>
+          </div>
+        </div>
+        <div class="card mt-4">
+          <div class="card-head">
+            <div class="card-title">Jury Evaluation Progress</div>
+            <span id="eval-summary" class="text-sm text-muted"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Campus</th><th>Assigned</th><th>Completed</th><th>Progress</th></tr></thead>
+              <tbody id="jury-prog-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /at-overview -->
+
+    <!-- APPLICATIONS TAB -->
+    <div id="at-applications" class="hidden">
+      <div class="card">
+        <div class="card-head mb-3">
+          <div class="card-title">All Applications</div>
+          <div class="flex gap-2 flex-wrap">
+            <select id="f-status" onchange="renderAppsTable()" style="padding:7px 11px;border:1px solid var(--border2);border-radius:var(--radius);font-size:0.85rem;background:var(--surface);color:var(--text);font-family:inherit">
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="rejected">Auto-Rejected</option>
+              <option value="assigned">Assigned</option>
+              <option value="evaluated">Evaluated</option>
+              <option value="flagged">Flagged</option>
+            </select>
+            <input id="f-search" oninput="renderAppsTable()" placeholder="Search name or campus..." style="padding:7px 11px;border:1px solid var(--border2);border-radius:var(--radius);font-size:0.85rem;background:var(--surface);color:var(--text);font-family:inherit;width:200px">
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Campus</th><th>Year</th><th>Gender</th><th>Status</th><th>Avg Score</th><th></th></tr></thead>
+            <tbody id="apps-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- JURY PROGRESS TAB -->
+    <div id="at-jury" class="hidden">
+      <div class="card">
+        <div class="card-title mb-3">Jury Members</div>
+        <div class="callout callout-blue mb-3">Default login password for all jury members: <strong>jury2026</strong></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Campus</th><th>Assigned</th><th>Completed</th><th>Remaining</th><th>Progress</th></tr></thead>
+            <tbody id="jury-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS TAB -->
+    <div id="at-results" class="hidden">
+      <div class="flex justify-between items-center flex-wrap gap-3 mb-4">
+        <h2>Evaluation Results</h2>
+        <div class="flex gap-2 flex-wrap">
+          <button class="btn btn-success btn-sm" onclick="dlShortlist()">Download Shortlist CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="dlAll()">Download All Results</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="rTab('shortlisted')">Shortlisted (avg &gt; 3)</button>
+        <button class="tab" onclick="rTab('ideal')">Ideal (avg &gt; 5)</button>
+        <button class="tab" onclick="rTab('flagged')">Flagged — 3rd Evaluator</button>
+        <button class="tab" onclick="rTab('all')">All Evaluated</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Rank</th><th>Name</th><th>Campus</th><th>Year</th><th>Raw Avg</th><th>Norm Score</th><th>J1</th><th>J2</th><th>J3</th><th>Status</th></tr></thead>
+            <tbody id="results-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page-wrap -->
+</div><!-- /admin-panel -->
+
+<!-- ═══ JURY PANEL ═══ -->
+<div id="jury-panel" class="hidden">
+  <nav class="nav">
+    <span class="nav-brand">TinkerHub Campus Evaluation</span>
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="jTab('assigned')">My Assignments</button>
+      <button class="nav-btn" onclick="jTab('completed')">Completed</button>
+    </div>
+    <div class="nav-right">
+      <div class="avatar" id="j-avatar">J</div>
+      <span id="j-name" class="text-sm text-muted"></span>
+      <button class="btn btn-outline btn-sm" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+  <div class="page-wrap">
+    <div id="jt-assigned">
+      <div class="grid-3 mb-4">
+        <div class="stat-card"><div class="stat-val" id="j-s-total">0</div><div class="stat-label">Total Assigned</div></div>
+        <div class="stat-card"><div class="stat-val" id="j-s-pending" style="color:var(--yellow)">0</div><div class="stat-label">Pending</div></div>
+        <div class="stat-card"><div class="stat-val" id="j-s-done" style="color:var(--green)">0</div><div class="stat-label">Completed</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title mb-3">Pending Evaluations</div>
+        <div id="j-pending-list"></div>
+      </div>
+    </div>
+    <div id="jt-completed" class="hidden">
+      <div class="card">
+        <div class="card-title mb-3">Completed Evaluations</div>
+        <div id="j-done-list"></div>
+      </div>
+    </div>
+    <div id="jt-eval" class="hidden">
+      <div class="mb-3">
+        <button class="btn btn-ghost btn-sm" onclick="backToList()">Back to Assignments</button>
+      </div>
+      <div class="eval-layout" id="eval-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN APP MODAL ═══ -->
+<div id="modal" class="overlay hidden" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="flex justify-between items-center mb-4">
+      <h2>Application Details</h2>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1;">&times;</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════
+const ADMIN_PW = 'tinkerhub@admin';
+const JURY_PW  = 'jury2026';
+
+// ── Airtable API endpoint (relative — same Vercel app) ──
+const AT_ENDPOINT = '/api/airtable';
+
+// Columns to SKIP in the dynamic display (internal/redundant)
+const SKIP_COLS = new Set(['timestamp','name (from campus name)','campus name (from campus name)','added to sheet','thank you mail sent']);
+
+// Columns that are "link" type
+const LINK_COLS = new Set(['your github profile','your portfolio','your linkedin profile','drive link']);
+
+// Columns that should be shown as prominent buttons
+const BUTTON_COLS = new Set(['drive link']);
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let S = {
+  role: null, user: null,
+  apps: [],        // parsed application objects
+  headers: [],     // original CSV headers
+  jury: [],        // jury member objects
+  assignments: {}, // appId (int) -> [juryId, juryId, ?juryId3]
+  evals: {},       // `${appId}_${juryId}` -> {score, comments, ts}
+  charts: {},      // chart instances
+  colMap: {}       // detected column indices by semantic key
+};
+
+// ── helpers to pack / unpack shared state ─────────────────────
+function statePayload() {
+  return { apps: S.apps, headers: S.headers, jury: S.jury, assignments: S.assignments, evals: S.evals, colMap: S.colMap };
+}
+function applyState(d) {
+  // Merge incoming apps with local raw text — the server strips `raw` to save
+  // space, but the device that uploaded the CSV still has it in localStorage.
+  const localRawMap = {};
+  (S.apps || []).forEach(a => { if (a.raw) localRawMap[a.id] = a.raw; });
+
+  S.headers = d.headers || S.headers || [];
+  S.jury = d.jury || []; S.assignments = d.assignments || {};
+  S.evals = d.evals || {}; S.colMap = d.colMap || {};
+
+  S.apps = (d.apps || S.apps || []).map(a => ({
+    ...a,
+    raw: a.raw || localRawMap[a.id] || null  // restore raw if we have it locally
+  }));
+
+  const newA = {};
+  Object.entries(S.assignments).forEach(([k,v]) => { newA[+k] = v; });
+  S.assignments = newA;
+}
+
+// ── localStorage (fast local cache) ───────────────────────────
+function save() {
+  try { localStorage.setItem('th_eval2', JSON.stringify(statePayload())); } catch(x) {}
+  syncToServer(); // fire-and-forget push to server
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('th_eval2') || '{}');
+    applyState(d);
+  } catch(x) {}
+}
+
+// ── Server state sync (Vercel KV via /api/state) ──────────────
+let _serverSavedAt = 0;
+let _syncInFlight  = false;
+
+async function syncToServer() {
+  if (_syncInFlight) return;
+  _syncInFlight = true;
+  try {
+    const payload = statePayload();
+    const resp = await fetch('/api/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (data.savedAt) _serverSavedAt = data.savedAt;
+  } catch(e) { /* non-fatal — local state is the fallback */ }
+  _syncInFlight = false;
+}
+
+async function syncFromServer(force) {
+  try {
+    const resp = await fetch('/api/state?t=' + Date.now());
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (data._kvMissing || data._notConfigured || data._empty || data.error) return;
+
+    const incoming = data._savedAt || 0;
+
+    // Skip during background polls if we already have this version
+    // But ALWAYS apply when called with force=true (e.g. on login)
+    if (!force && incoming <= _serverSavedAt) return;
+
+    _serverSavedAt = incoming;
+    applyState(data);
+    try { localStorage.setItem('th_eval2', JSON.stringify(statePayload())); } catch(x) {}
+
+    // Re-render current view if logged in (or forced on login)
+    if (!force && !S.user) return;
+    if (S.user && S.user.role === 'admin') {
+      const tabs = ['overview','applications','jury','results'];
+      const active = tabs.find(t => { const el = document.getElementById('at-' + t); return el && !el.classList.contains('hidden'); }) || 'overview';
+      if (active === 'overview') renderOverview();
+      else if (active === 'applications') renderAppsTable();
+      else if (active === 'jury') renderJuryFull();
+      else if (active === 'results') renderResultsTable('shortlisted');
+    } else if (S.user && S.user.role === 'jury') {
+      renderPending();
+    }
+  } catch(e) { /* non-fatal — local state is the fallback */ }
+}
+
+// Poll for changes every 20 seconds so all users stay in sync
+setInterval(syncFromServer, 20000);
+
+// ══════════════════════════════════════════════
+// CSV PARSER — handles multiline quoted fields
+// ══════════════════════════════════════════════
+function parseCSV(text) {
+  // Normalize and strip BOM
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+  let pos = 0;
+  const records = [];
+
+  function parseField() {
+    if (pos >= text.length) return '';
+    if (text[pos] === '"') {
+      pos++; // skip opening "
+      let val = '';
+      while (pos < text.length) {
+        if (text[pos] === '"') {
+          pos++;
+          if (pos < text.length && text[pos] === '"') { val += '"'; pos++; } // escaped quote
+          else break; // closing quote
+        } else {
+          val += text[pos++];
+        }
+      }
+      return val;
+    } else {
+      let val = '';
+      while (pos < text.length && text[pos] !== ',' && text[pos] !== '\n') {
+        val += text[pos++];
+      }
+      return val.trim();
+    }
+  }
+
+  function parseRecord() {
+    const fields = [];
+    while (pos < text.length) {
+      fields.push(parseField());
+      if (pos < text.length && text[pos] === ',') { pos++; continue; }
+      if (pos < text.length && text[pos] === '\n') { pos++; break; }
+      break; // EOF
+    }
+    return fields;
+  }
+
+  while (pos < text.length) {
+    const rec = parseRecord();
+    if (rec.length > 0 && rec.some(f => String(f).trim())) records.push(rec);
+  }
+
+  return records;
+}
+
+// ══════════════════════════════════════════════
+// COLUMN DETECTION — finds columns by header name
+// ══════════════════════════════════════════════
+function detectColumns(headers) {
+  const h = headers.map(x => x.toLowerCase().trim());
+  function find(...terms) {
+    const idx = h.findIndex(x => terms.some(t => x.includes(t)));
+    return idx;
+  }
+  return {
+    NAME:       find('your name', 'applicant name', 'full name'),
+    CAMPUS:     find('name (from campus'),
+    CAMPUS_TYPE:find('type (from campus', 'campus type', 'college type'),
+    INSTITUTION:find('institution name', 'college name', 'institution'),
+    CONFIRM:    find('i understand', 'cannot hold', 'other positions'),
+    EMAIL:      find('email'),
+    PHONE:      find('contact number', 'phone', 'mobile'),
+    GENDER:     find('gender'),
+    GITHUB:     find('github'),
+    PORTFOLIO:  find('portfolio'),
+    LINKEDIN:   find('linkedin'),
+    YEAR:       find('graduation year', 'graduating year', 'batch'),
+    VIDEO:      find('video format', 'all answers must'),
+    VIDEO_REASON: find("what's your reason", "let us know what your reason", "reason is"),
+    VISION:     find('vision'),
+    CHALLENGES: find('challenges'),
+    ABOUT:      find('tell us about you', 'shaped you', 'background, education'),
+    WHY:        find('why the tinkerhub', 'why tinkerhub community'),
+    COMMUNITY:  find('led or been part', 'learning activities', 'community-building'),
+    DRIVE:      find('drive link'),
+    HAS_COMMUNITY: find('does your campus have'),
+  };
+}
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+function ghUser(url) {
+  const m = (url||'').match(/github\.com\/([^\/\s?#]+)/);
+  return m ? m[1] : '';
+}
+function prio(y) {
+  if ([2026,2027].includes(+y)) return 'high';
+  if ([2028,2029].includes(+y)) return 'medium';
+  return 'low';
+}
+function isUrl(s) { return /^https?:\/\//i.test(s||''); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function col(key) { return S.colMap[key] ?? -1; }
+function getVal(raw, key) { const i = col(key); return i >= 0 ? (raw[i]||'') : ''; }
+
+// ══════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════
+let loginRole = 'admin';
+function setRole(r) {
+  loginRole = r;
+  document.getElementById('rt-admin').classList.toggle('active', r==='admin');
+  document.getElementById('rt-jury').classList.toggle('active', r==='jury');
+  document.getElementById('form-admin').classList.toggle('hidden', r!=='admin');
+  document.getElementById('form-jury').classList.toggle('hidden', r==='admin');
+  document.getElementById('login-err').style.display = 'none';
+}
+function showErr(msg, color) { const el=document.getElementById('login-err'); el.textContent=msg; el.style.display='block'; el.style.color=color||''; }
+function clearErr() { const el=document.getElementById('login-err'); if(el){ el.textContent=''; el.style.display='none'; } }
+async function adminLogin() {
+  if (document.getElementById('inp-apw').value !== ADMIN_PW) { showErr('Incorrect password.'); return; }
+  showErr('Loading latest data…', '#6b7280');
+  await syncFromServer(true);  // force — always pull latest on login
+  clearErr();
+  S.role='admin'; S.user={ role:'admin' };
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('admin-panel').classList.remove('hidden');
+  renderOverview();
+}
+async function juryLogin() {
+  const email = document.getElementById('inp-jemail').value.trim().toLowerCase();
+  const pw    = document.getElementById('inp-jpw').value;
+  if (pw !== JURY_PW) { showErr('Incorrect password.'); return; }
+  // If no jury loaded locally, fetch from server first
+  // Always force-sync on login so jury sees latest assignments
+  showErr('Loading…', '#6b7280');
+  await syncFromServer(true);
+  clearErr();
+  const m = S.jury.find(j => j.email.toLowerCase() === email);
+  if (!m) { showErr('Email not found in jury list. Please contact admin.'); return; }
+  S.role='jury'; S.user={ ...m, role:'jury' };
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('jury-panel').classList.remove('hidden');
+  document.getElementById('j-name').textContent = m.name;
+  document.getElementById('j-avatar').textContent = m.name.charAt(0).toUpperCase();
+  renderPending();
+}
+function logout() {
+  S.role=null; S.user=null;
+  document.getElementById('admin-panel').classList.add('hidden');
+  document.getElementById('jury-panel').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('inp-apw').value='';
+  document.getElementById('inp-jemail').value='';
+  document.getElementById('inp-jpw').value='';
+}
+
+// ══════════════════════════════════════════════
+// AIRTABLE SYNC + PUSH
+// ══════════════════════════════════════════════
+
+// Check connectivity on load and update the status banner
+async function checkAirtableConnection() {
+  const banner = document.getElementById('at-status-banner');
+  if (!banner) return;
+  try {
+    const resp = await fetch(AT_ENDPOINT + '?limit=1&t=' + Date.now());
+    if (resp.ok) {
+      banner.style.background = 'var(--green-bg,#f0fdf4)';
+      banner.style.borderColor = 'var(--green,#16a34a)';
+      banner.style.color = 'var(--green,#16a34a)';
+      banner.textContent = 'Connected to Airtable — Evaluation Connect table';
+    } else {
+      const d = await resp.json().catch(()=>({}));
+      banner.style.background='#fff8f8'; banner.style.borderColor='var(--red)'; banner.style.color='var(--red)';
+      banner.textContent = 'Airtable connection failed: ' + (d.error || resp.status);
+    }
+  } catch(e) {
+    banner.style.background='#fff8f8'; banner.style.borderColor='var(--red)'; banner.style.color='var(--red)';
+    banner.textContent = 'Could not reach Airtable. Make sure environment variables are set in Vercel.';
+  }
+}
+
+async function syncFromAirtable() {
+  const btn = document.getElementById('btn-sync-apps');
+  btn.disabled = true; btn.textContent = 'Syncing...';
+  document.getElementById('apps-status').innerHTML =
+    '<span style="color:var(--muted)">Fetching from Airtable...</span>';
+  try {
+    const resp = await fetch(AT_ENDPOINT + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    if (!data.headers || !data.rows) throw new Error('Unexpected response from API');
+
+    // Build rows array (header row + data rows) for processApplicationRows
+    const rows = [data.headers, ...data.rows];
+    processApplicationRows(rows);
+    document.getElementById('apps-status').innerHTML =
+      `<span style="color:var(--green)">Synced ${data.rows.length} records from Airtable.</span>`;
+  } catch(e) {
+    document.getElementById('apps-status').innerHTML =
+      `<span style="color:var(--red)">Sync failed: ${e.message}</span>`;
+  }
+  btn.disabled = false; btn.textContent = 'Sync from Airtable';
+}
+
+// Push a single eval result back to the Airtable record
+async function pushEvalToAirtable(appId) {
+  const app = S.apps.find(a => a.id === +appId);
+  if (!app || !app.airtableId) return; // no record ID — skip silently
+
+  const r = appResult(+appId);
+  if (!r) return;
+
+  // Compute combined scores + status label
+  const status = r.complete ? (r.normAvg > 5 ? 'Ideal' : r.normAvg > 3 ? 'Shortlisted' : 'Below Threshold') : 'Evaluating';
+  const jids   = S.assignments[+appId] || [];
+  const allComments = jids.map(jid => getEval(+appId, jid)?.comments || '').filter(Boolean).join(' | ');
+  const juryNames   = jids.map(jid => { const j = S.jury.find(x=>x.id===jid); return j ? (j.name||j.email) : ''; }).filter(Boolean).join(', ');
+
+  const fields = {
+    'Eval Score':      r.complete ? +r.rawAvg.toFixed(2)  : null,
+    'Eval Norm Score': r.complete ? +r.normAvg.toFixed(2) : null,
+    'Eval Status':     status,
+    'Eval Jury Count': r.evs.length,
+    'Eval Comments':   allComments || null,
+    'Eval Jury':       juryNames   || null,
+    'Eval Flagged':    r.flagged || false,
+  };
+  // Remove null fields to avoid overwriting with blanks
+  Object.keys(fields).forEach(k => { if (fields[k] === null) delete fields[k]; });
+
+  try {
+    await fetch(AT_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_record', recordId: app.airtableId, fields })
+    });
+  } catch(e) {
+    console.warn('Airtable push failed:', e.message);
+  }
+}
+
+// Batch-update all evaluated records (called from Export buttons)
+async function pushAllResultsToAirtable() {
+  const updates = S.apps
+    .filter(a => !a.isRejected && a.airtableId)
+    .map(a => {
+      const r = appResult(a.id);
+      if (!r || !r.complete) return null;
+      const status = r.normAvg > 5 ? 'Ideal' : r.normAvg > 3 ? 'Shortlisted' : 'Below Threshold';
+      const jids = S.assignments[a.id] || [];
+      return {
+        recordId: a.airtableId,
+        fields: {
+          'Eval Score':      +r.rawAvg.toFixed(2),
+          'Eval Norm Score': +r.normAvg.toFixed(2),
+          'Eval Status':     status,
+          'Eval Jury Count': r.evs.length,
+          'Eval Comments':   jids.map(jid => getEval(a.id,jid)?.comments||'').filter(Boolean).join(' | ') || undefined,
+          'Eval Flagged':    r.flagged || false,
+        }
+      };
+    }).filter(Boolean);
+
+  if (!updates.length) return false;
+  try {
+    const resp = await fetch(AT_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'batch_update', updates })
+    });
+    const data = await resp.json();
+    return data.ok === true;
+  } catch(e) {
+    console.warn('Airtable batch update failed:', e.message);
+    return false;
+  }
+}
+
+// ══════════════════════════════════════════════
+// UPLOAD: APPLICATIONS
+// ══════════════════════════════════════════════
+// Shared core: takes array of rows (header row + data rows) and populates S.apps
+function processApplicationRows(records) {
+  if (!records.length) throw new Error('No data found.');
+  const headers = records[0];
+
+  // Strip the internal _airtable_id column from displayed headers but keep value on app object
+  const atIdIdx = headers.findIndex(h => h === '_airtable_id');
+  // Work with original headers for colMap (including _airtable_id), but store clean headers for display
+  S.headers = atIdIdx >= 0 ? headers.filter((_,i) => i !== atIdIdx) : headers;
+  S.colMap = detectColumns(headers); // uses full headers with _airtable_id
+  const cm = S.colMap;
+
+  S.apps = records.slice(1).map((raw, i) => {
+    // Extract and remove the airtable id from the raw row if present
+    const airtableId = atIdIdx >= 0 ? (raw[atIdIdx] || '') : '';
+    const cleanRaw   = atIdIdx >= 0 ? raw.filter((_,idx) => idx !== atIdIdx) : raw;
+
+    const confirm = (raw[cm.CONFIRM]||'').toLowerCase().trim();
+    const affirm = ['true','yes','checked','i understand','i agree'];
+    const isRejected = !confirm || !affirm.some(a => confirm.startsWith(a) || confirm.includes(a));
+    const yr = parseInt(raw[cm.YEAR] || '') || 0;
+    return {
+      id: i,
+      airtableId,
+      name: raw[cm.NAME] || '',
+      campus: raw[cm.CAMPUS] || '',
+      campusType: raw[cm.CAMPUS_TYPE] || '',
+      institution: raw[cm.INSTITUTION] || '',
+      email: raw[cm.EMAIL] || '',
+      gender: raw[cm.GENDER] || '',
+      year: yr,
+      priority: prio(yr),
+      github: raw[cm.GITHUB] || '',
+      drive: raw[cm.DRIVE] || '',
+      isRejected,
+      raw: cleanRaw
+    };
+  });
+
+  save();
+  const rej = S.apps.filter(a=>a.isRejected).length;
+  document.getElementById('apps-status').innerHTML = `
+    <span class="badge badge-green">Loaded ${S.apps.length} applications</span>
+    <span class="text-sm text-muted" style="margin-left:8px">${S.apps.length - rej} active &middot; <span style="color:var(--red)">${rej} auto-rejected</span></span>`;
+  renderOverview();
+}
+
+function uploadApps(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const records = parseCSV(ev.target.result);
+      processApplicationRows(records);
+    } catch(err) {
+      document.getElementById('apps-status').innerHTML = `<span class="badge badge-red">Error: ${err.message}</span>`;
+    }
+  };
+  r.readAsText(f);
+}
+
+// ══════════════════════════════════════════════
+// UPLOAD: JURY
+// ══════════════════════════════════════════════
+function uploadJury(inp) {
+  const f = inp.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const records = parseCSV(ev.target.result);
+      if (!records.length) throw new Error('No data found.');
+      const headers = records[0];
+      S.jury = records.slice(1).map((raw, i) => {
+        // Flexible header matching
+        const h = headers.map(x => x.toLowerCase().trim());
+        const nameIdx   = h.findIndex(x => x.includes('name'));
+        const emailIdx  = h.findIndex(x => x.includes('email'));
+        const campusIdx = h.findIndex(x => x.includes('campus'));
+        return {
+          id: i,
+          name:   raw[nameIdx >= 0 ? nameIdx : 0] || '',
+          email:  raw[emailIdx >= 0 ? emailIdx : 1] || '',
+          campus: raw[campusIdx >= 0 ? campusIdx : 2] || ''
+        };
+      }).filter(j => j.name && j.email);
+      save();
+      document.getElementById('jury-status').innerHTML = `<span class="badge badge-green">Loaded ${S.jury.length} jury members</span>`;
+      renderOverview();
+    } catch(err) {
+      document.getElementById('jury-status').innerHTML = `<span class="badge badge-red">Error: ${err.message}</span>`;
+    }
+  };
+  r.readAsText(f);
+}
+
+// ══════════════════════════════════════════════
+// ASSIGNMENT ALGORITHM
+// ══════════════════════════════════════════════
+function doAssign() {
+  const active = S.apps.filter(a => !a.isRejected);
+  if (!active.length) { document.getElementById('assign-msg').innerHTML='<span class="badge badge-yellow">No active applications to assign.</span>'; return; }
+  if (S.jury.length < 2) { document.getElementById('assign-msg').innerHTML='<span class="badge badge-red">Need at least 2 jury members uploaded first.</span>'; return; }
+
+  const po = {high:0, medium:1, low:2};
+  const sorted = [...active].sort((a,b) => po[a.priority] - po[b.priority]);
+  const load = {};
+  S.jury.forEach(j => load[j.id] = 0);
+  S.assignments = {};
+
+  for (const app of sorted) {
+    const ac = (app.campus || app.institution || '').toLowerCase().trim();
+    const eligible = S.jury.filter(j => {
+      const jc = (j.campus || '').toLowerCase().trim();
+      return !ac || !jc || jc !== ac;
+    });
+    const pool = (eligible.length >= 2 ? eligible : S.jury)
+      .slice()
+      .sort((a,b) => load[a.id] - load[b.id]);
+    S.assignments[app.id] = [pool[0].id, pool[1].id];
+    S.assignments[app.id].forEach(jid => load[jid]++);
+  }
+
+  save();
+  document.getElementById('assign-msg').innerHTML =
+    `<span class="badge badge-green">Done — ${active.length} applications assigned to jury members.</span>`;
+  renderOverview();
+}
+
+function resetAssign() {
+  if (!confirm('Reset all assignments? Existing evaluations will be kept.')) return;
+  S.assignments = {}; save();
+  document.getElementById('assign-msg').innerHTML = '<span class="badge badge-yellow">Assignments cleared.</span>';
+  renderOverview();
+}
+
+// ══════════════════════════════════════════════
+// SCORING & NORMALISATION
+// ══════════════════════════════════════════════
+function getEval(appId, juryId) {
+  return S.evals[`${+appId}_${+juryId}`] || null;
+}
+
+function normScores() {
+  const byJury = {};
+  Object.entries(S.evals).forEach(([key, ev]) => {
+    const [a,j] = key.split('_').map(Number);
+    if (!byJury[j]) byJury[j] = [];
+    byJury[j].push(ev.score);
+  });
+  const jStats = {};
+  Object.entries(byJury).forEach(([jid, scores]) => {
+    const mean = scores.reduce((s,x) => s+x, 0) / scores.length;
+    const std  = Math.sqrt(scores.reduce((s,x) => s + Math.pow(x-mean,2), 0) / scores.length) || 1;
+    jStats[jid] = {mean, std};
+  });
+  const allScores = Object.values(S.evals).map(e => e.score);
+  const gMean = allScores.length ? allScores.reduce((s,x)=>s+x,0)/allScores.length : 3.5;
+  const gStd  = Math.sqrt(allScores.length ? allScores.reduce((s,x)=>s+Math.pow(x-gMean,2),0)/allScores.length : 1) || 1;
+  const out = {};
+  Object.entries(S.evals).forEach(([key,ev]) => {
+    const [a,j] = key.split('_').map(Number);
+    const st = jStats[j] || {mean:gMean, std:1};
+    out[key] = Math.max(0, Math.min(7, (ev.score - st.mean) / st.std * gStd + gMean));
+  });
+  return out;
+}
+
+function appResult(appId) {
+  const id = +appId;
+  const jids = S.assignments[id] || [];
+  const norm = normScores();
+  const evs = jids.map(jid => {
+    const ev = getEval(id, jid); if (!ev) return null;
+    return { jid, raw: ev.score, norm: norm[`${id}_${jid}`] ?? ev.score, comments: ev.comments };
+  }).filter(Boolean);
+  if (!evs.length) return null;
+  const rawAvg  = evs.reduce((s,e)=>s+e.raw,0) / evs.length;
+  const normAvg = evs.reduce((s,e)=>s+e.norm,0) / evs.length;
+  const flagged = evs.length >= 2 && Math.abs(evs[0].raw - evs[1].raw) >= 3;
+  return { evs, rawAvg, normAvg, flagged, complete: evs.length >= 2 };
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — OVERVIEW
+// ══════════════════════════════════════════════
+function renderOverview() {
+  renderStepper();
+  renderStats();
+  renderLiveSection();
+}
+
+function renderStepper() {
+  const hasApps  = S.apps.length > 0;
+  const hasJury  = S.jury.length > 0;
+  const hasAssign = Object.keys(S.assignments).length > 0;
+  const evalCount = S.apps.filter(a=>!a.isRejected && appResult(a.id)?.complete).length;
+  const active = S.apps.filter(a=>!a.isRejected).length;
+  const allEvalDone = hasAssign && active > 0 && evalCount === active;
+
+  function step(num, title, sub, status) {
+    const cls = status === 'done' ? 'done' : status === 'active' ? 'active' : '';
+    const indicator = status === 'done' ? '<span style="color:var(--green);font-weight:700;float:right">Done</span>' : status === 'active' ? '<span style="color:var(--orange);font-weight:700;float:right">Active</span>' : '';
+    return `<div class="step ${cls}">${indicator}<div class="step-num">Step ${num}</div><div class="step-title">${title}</div><div class="step-sub">${sub}</div></div>`;
+  }
+
+  document.getElementById('stepper').innerHTML =
+    step(1, 'Upload Applications', hasApps ? `${S.apps.length} loaded, ${S.apps.filter(a=>a.isRejected).length} rejected` : 'Upload the CSV from Google Sheet', hasApps?'done':'active') +
+    step(2, 'Upload Jury Members', hasJury ? `${S.jury.length} members loaded` : 'Upload jury CSV (Name, Email, Campus)', hasApps&&!hasJury?'active':hasJury?'done':'') +
+    step(3, 'Auto-Assign', hasAssign ? `${active} applications distributed` : 'Assign applications to jury', hasApps&&hasJury&&!hasAssign?'active':hasAssign?'done':'') +
+    step(4, 'Monitor Progress', evalCount > 0 ? `${evalCount} / ${active} evaluated` : 'Jury members are evaluating', hasAssign&&!allEvalDone?'active':allEvalDone?'done':'') +
+    step(5, 'Export Results', allEvalDone ? 'Ready to download shortlist' : 'Available once evaluations complete', allEvalDone?'active':'');
+}
+
+function renderStats() {
+  const tot   = S.apps.length;
+  const rej   = S.apps.filter(a=>a.isRejected).length;
+  const evaled= S.apps.filter(a=>{ const r=appResult(a.id); return r&&r.complete; }).length;
+  const flagged=S.apps.filter(a=>{ const r=appResult(a.id); return r&&r.flagged; }).length;
+  const ideal = S.apps.filter(a=>{ const r=appResult(a.id); return r&&r.complete&&r.normAvg>5; }).length;
+
+  function sc(val, label, color) {
+    return `<div class="stat-card"><div class="stat-val" style="color:${color||'var(--text)'}">${val}</div><div class="stat-label">${label}</div></div>`;
+  }
+  document.getElementById('stats-row').innerHTML =
+    sc(tot, 'Total Applications') +
+    sc(tot-rej, 'Active', 'var(--green)') +
+    sc(rej, 'Auto-Rejected', 'var(--red)') +
+    sc(evaled, 'Evaluated', 'var(--blue)') +
+    sc(flagged, 'Flagged', 'var(--yellow)');
+}
+
+function renderLiveSection() {
+  const hasData = S.apps.length > 0;
+  document.getElementById('live-section').classList.toggle('hidden', !hasData);
+  if (!hasData) return;
+  renderJuryProgress();
+  setTimeout(renderLiveCharts, 80);
+}
+
+function renderJuryProgress() {
+  const tbody = document.getElementById('jury-prog-tbody');
+  const active = S.apps.filter(a=>!a.isRejected).length;
+  const totalDone = S.apps.filter(a=>appResult(a.id)?.complete).length;
+  document.getElementById('eval-summary').textContent = `${totalDone} of ${active} evaluated`;
+
+  tbody.innerHTML = S.jury.map((j,i) => {
+    const assigned = Object.entries(S.assignments).filter(([a,jids])=>jids.includes(j.id)).length;
+    const done = Object.entries(S.assignments).filter(([a,jids])=>jids.includes(j.id)&&S.evals[`${a}_${j.id}`]).length;
+    const pct = assigned ? Math.round(done/assigned*100) : 0;
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${esc(j.name)}</strong></td>
+      <td>${esc(j.email)}</td>
+      <td>${esc(j.campus||'—')}</td>
+      <td>${assigned}</td>
+      <td>${done}</td>
+      <td>${assigned-done}</td>
+      <td><div class="prog"><div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div><span class="text-xs" style="width:36px;text-align:right">${pct}%</span></div></td>
+    </tr>`;
+  }).join('');
+  if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No jury members loaded yet.</td></tr>';
+}
+
+function renderLiveCharts() {
+  const active = S.apps.filter(a=>!a.isRejected);
+
+  // Gender chart
+  const gc = {};
+  active.forEach(a => { const g = a.gender || 'Not specified'; gc[g] = (gc[g]||0)+1; });
+  mkChart('c-gender', 'doughnut', Object.keys(gc), Object.values(gc));
+
+  // Year chart
+  const yc = {};
+  active.forEach(a => { const y = a.year || 'Unknown'; yc[y] = (yc[y]||0)+1; });
+  const yl = Object.keys(yc).sort();
+  const yColors = yl.map(y => [2026,2027].includes(+y) ? '#16a34a' : [2028,2029].includes(+y) ? '#f97316' : '#9ca3af');
+  mkChart('c-year', 'bar', yl, yl.map(y=>yc[y]), yColors);
+}
+
+function mkChart(id, type, labels, data, colors) {
+  if (S.charts[id]) { S.charts[id].destroy(); delete S.charts[id]; }
+  const el = document.getElementById(id); if (!el) return;
+  const ctx = el.getContext('2d');
+  const palette = ['#f97316','#2563eb','#16a34a','#a855f7','#d97706','#dc2626','#06b6d4','#84cc16'];
+  S.charts[id] = new Chart(ctx, {
+    type,
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors || (type==='doughnut' ? palette : '#f97316'),
+        borderRadius: type==='bar' ? 5 : 0,
+        borderColor: 'transparent',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: type==='doughnut', labels: { font:{size:12}, color:'#374151', padding:12 } }
+      },
+      scales: type!=='doughnut' ? {
+        x: { ticks:{color:'#6b7280',font:{size:11}}, grid:{color:'#f3f4f6'} },
+        y: { ticks:{color:'#6b7280',font:{size:11}}, grid:{color:'#f3f4f6'}, beginAtZero:true }
+      } : {}
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — TABS
+// ══════════════════════════════════════════════
+function aTab(t) {
+  ['overview','applications','jury','results'].forEach((x,i) => {
+    document.getElementById(`at-${x}`).classList.toggle('hidden', x!==t);
+    document.querySelectorAll('.nav-btn')[i].classList.toggle('active', x===t);
+  });
+  if (t==='overview')  { renderOverview(); }
+  if (t==='applications') renderAppsTable();
+  if (t==='jury') renderJuryFull();
+  if (t==='results') renderResultsTable('shortlisted');
+}
+
+function renderAppsTable() {
+  const filter = document.getElementById('f-status')?.value || 'all';
+  const search = (document.getElementById('f-search')?.value || '').toLowerCase();
+  const apps = S.apps.filter(app => {
+    const r = appResult(app.id);
+    const match = (app.name+app.campus+app.institution).toLowerCase().includes(search);
+    if (!match) return false;
+    if (filter==='rejected') return app.isRejected;
+    if (filter==='active')   return !app.isRejected;
+    if (filter==='assigned') return !app.isRejected && S.assignments[app.id];
+    if (filter==='evaluated')return r&&r.complete;
+    if (filter==='flagged')  return r&&r.flagged;
+    return true;
+  });
+  const tbody = document.getElementById('apps-tbody');
+  tbody.innerHTML = apps.map((app,i) => {
+    const r = appResult(app.id);
+    let sb = '';
+    if (app.isRejected)        sb = '<span class="badge badge-red">Auto-Rejected</span>';
+    else if (r&&r.flagged)     sb = '<span class="badge badge-yellow">Flagged</span>';
+    else if (r&&r.complete)    sb = '<span class="badge badge-green">Evaluated</span>';
+    else if (S.assignments[app.id]) sb = '<span class="badge badge-blue">Assigned</span>';
+    else                       sb = '<span class="badge badge-gray">Pending</span>';
+    const score = r&&r.complete ? `<strong>${r.rawAvg.toFixed(1)}</strong><span class="text-xs text-muted"> (norm: ${r.normAvg.toFixed(1)})</span>` : '—';
+    return `<tr>
+      <td class="text-muted text-xs">${i+1}</td>
+      <td><div class="fw-600">${esc(app.name)||'—'}</div><div class="text-xs text-muted">${esc(app.email)}</div></td>
+      <td><div>${esc(app.campus||'—')}</div></td>
+      <td><span class="pdot pdot-${app.priority}"></span>${app.year||'—'}</td>
+      <td>${app.gender?esc(app.gender):'—'}</td>
+      <td>${sb}</td>
+      <td>${score}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="viewApp(${app.id})">View</button></td>
+    </tr>`;
+  }).join('');
+  if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">No applications found.</div></td></tr>';
+}
+
+function viewApp(id) {
+  const app = S.apps.find(a=>a.id===id); if (!app) return;
+  const r = appResult(id);
+  const allFields = buildDynamicFields(app);
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:grid;gap:12px">
+      ${allFields}
+      ${r ? `<div style="background:var(--bg);border-radius:var(--radius);padding:14px;margin-top:8px">
+        <div class="field-lbl">Evaluation Summary</div>
+        <div class="mt-2">Raw Average: <strong>${r.rawAvg.toFixed(2)}</strong> &nbsp;|&nbsp; Normalised: <strong>${r.normAvg.toFixed(2)}</strong></div>
+        ${r.flagged ? '<div class="badge badge-yellow mt-2">Score difference &ge; 3 — 3rd evaluator assigned</div>' : ''}
+        ${r.evs.map(e => `<div class="text-sm mt-2"><strong>${S.jury.find(j=>j.id===e.jid)?.name||'Jury'}</strong>: ${e.raw}/7${e.comments?` — <span class="text-muted">"${esc(e.comments)}"</span>`:''}</div>`).join('')}
+      </div>` : ''}
+    </div>`;
+  document.getElementById('modal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+function buildDynamicFields(app) {
+  if (!S.headers.length || !app.raw) {
+    // Fallback to known fields
+    const lines = [];
+    if (app.name) lines.push(fb('Name', app.name));
+    if (app.campus) lines.push(fb('Campus', app.campus));
+    if (app.campusType) lines.push(fb('Campus Type', app.campusType));
+    if (app.email) lines.push(fb('Email', app.email));
+    if (app.gender) lines.push(fb('Gender', app.gender));
+    if (app.year) lines.push(fb('Graduation Year', String(app.year)));
+    return lines.join('');
+  }
+  // Show all non-empty fields dynamically
+  const out = [];
+  S.headers.forEach((header, i) => {
+    const hl = header.toLowerCase().trim();
+    if (SKIP_COLS.has(hl)) return;
+    const val = (app.raw[i] || '').trim();
+    if (!val) return;
+    if (isUrl(val)) {
+      out.push(fb(header, `<a href="${fixUrl(val)}" target="_blank">${esc(val)}</a>`));
+    } else {
+      out.push(fb(header, esc(val)));
+    }
+  });
+  return out.join('');
+}
+function fb(label, val) {
+  if (!val || String(val).trim() === '') return '';
+  return `<div class="field-block"><div class="field-lbl">${esc(label)}</div><div class="field-val">${val}</div></div>`;
+}
+
+function renderJuryFull() {
+  const tbody = document.getElementById('jury-tbody');
+  tbody.innerHTML = S.jury.map((j,i) => {
+    const assigned = Object.entries(S.assignments).filter(([a,jids])=>jids.includes(j.id)).length;
+    const done = Object.entries(S.assignments).filter(([a,jids])=>jids.includes(j.id)&&S.evals[`${a}_${j.id}`]).length;
+    const pct = assigned ? Math.round(done/assigned*100) : 0;
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${esc(j.name)}</strong></td>
+      <td>${esc(j.email)}</td>
+      <td>${esc(j.campus||'—')}</td>
+      <td>${assigned}</td>
+      <td>${done}</td>
+      <td>${assigned-done}</td>
+      <td><div class="prog"><div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div><span class="text-xs" style="width:36px;text-align:right">${pct}%</span></div></td>
+    </tr>`;
+  }).join('');
+  if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">No jury members loaded.</div></td></tr>';
+}
+
+// ══════════════════════════════════════════════
+// ADMIN — RESULTS
+// ══════════════════════════════════════════════
+function rTab(t) {
+  document.querySelectorAll('#at-results .tab').forEach((el,i) => {
+    el.classList.toggle('active', ['shortlisted','ideal','flagged','all'][i] === t);
+  });
+  renderResultsTable(t);
+}
+function renderResultsTable(filter) {
+  let items = S.apps.filter(a=>!a.isRejected)
+    .map(app => ({app, r: appResult(app.id)}))
+    .filter(({r}) => r && r.complete);
+  if (filter==='shortlisted') items = items.filter(({r}) => r.normAvg > 3);
+  else if (filter==='ideal')  items = items.filter(({r}) => r.normAvg > 5);
+  else if (filter==='flagged')items = items.filter(({r}) => r.flagged);
+  items.sort((a,b) => b.r.normAvg - a.r.normAvg);
+  const tbody = document.getElementById('results-tbody');
+  tbody.innerHTML = items.map(({app,r},i) => {
+    const jids = S.assignments[app.id] || [];
+    const sc = jids.map(jid => { const ev=getEval(app.id,jid); return ev?`${ev.score}/7`:'—'; });
+    const sb = r.normAvg>5 ? '<span class="badge badge-green">Ideal</span>'
+             : r.normAvg>3 ? '<span class="badge badge-blue">Shortlisted</span>'
+             : '<span class="badge badge-gray">Below threshold</span>';
+    const flag = r.flagged ? ' <span class="badge badge-yellow">3rd Eval</span>' : '';
+    return `<tr>
+      <td><strong>${i+1}</strong></td>
+      <td><div class="fw-600">${esc(app.name)}</div><div class="text-xs text-muted">${esc(app.email)}</div></td>
+      <td>${esc(app.campus||'—')}</td>
+      <td>${app.year||'—'}</td>
+      <td>${r.rawAvg.toFixed(2)}</td>
+      <td><strong>${r.normAvg.toFixed(2)}</strong></td>
+      <td>${sc[0]||'—'}</td><td>${sc[1]||'—'}</td><td>${sc[2]||'—'}</td>
+      <td>${sb}${flag}</td>
+    </tr>`;
+  }).join('');
+  if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">No results yet.</div></td></tr>';
+}
+
+// ══════════════════════════════════════════════
+// DOWNLOAD + GOOGLE SHEETS EXPORT
+// ══════════════════════════════════════════════
+const RESULT_HEADS = ['Rank','Name','Email','Campus','Institution','Grad Year','Gender','GitHub','Raw Avg','Norm Score','J1 Score','J2 Score','J3 Score','Status','Comments'];
+
+function buildResultsRows(items) {
+  return items.map(({app,r},i) => {
+    const jids = S.assignments[app.id] || [];
+    const sc   = jids.map(jid => getEval(app.id,jid)?.score ?? '');
+    const cm   = jids.map(jid => getEval(app.id,jid)?.comments || '').filter(Boolean).join(' | ');
+    const st   = r.normAvg>5 ? 'Ideal' : r.normAvg>3 ? 'Shortlisted' : 'Below Threshold';
+    return [i+1, app.name, app.email, app.campus, app.institution, app.year, app.gender, app.github,
+            r.rawAvg.toFixed(2), r.normAvg.toFixed(2), sc[0]??'', sc[1]??'', sc[2]??'', st, cm];
+  });
+}
+
+async function dlShortlist() {
+  const items = S.apps.filter(a=>!a.isRejected).map(a=>({app:a,r:appResult(a.id)})).filter(({r})=>r&&r.complete&&r.normAvg>3).sort((a,b)=>b.r.normAvg-a.r.normAvg);
+  exportCSV(items, 'tinkerhub_shortlisted.csv');
+  // Also push full results to Airtable
+  pushAllResultsToAirtable().then(ok => { if (ok) showToast('Results updated in Airtable.'); });
+}
+async function dlAll() {
+  const items = S.apps.filter(a=>!a.isRejected).map(a=>({app:a,r:appResult(a.id)})).filter(({r})=>r&&r.complete).sort((a,b)=>b.r.normAvg-a.r.normAvg);
+  exportCSV(items, 'tinkerhub_all_results.csv');
+  pushAllResultsToAirtable().then(ok => { if (ok) showToast('Results updated in Airtable.'); });
+}
+
+function exportCSV(items, filename) {
+  const rows = buildResultsRows(items);
+  const csv = [RESULT_HEADS, ...rows].map(row => row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = filename; a.click();
+}
+
+function showToast(msg) {
+  let t = document.getElementById('gs-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'gs-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:8px;font-size:0.88rem;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
+
+// ══════════════════════════════════════════════
+// JURY — TABS & LIST
+// ══════════════════════════════════════════════
+function jTab(t) {
+  document.getElementById('jt-assigned').classList.toggle('hidden', t!=='assigned');
+  document.getElementById('jt-completed').classList.toggle('hidden', t!=='completed');
+  document.getElementById('jt-eval').classList.add('hidden');
+  document.querySelectorAll('#jury-panel .nav-btn').forEach((el,i) =>
+    el.classList.toggle('active', ['assigned','completed'][i] === t));
+  if (t==='assigned') renderPending();
+  if (t==='completed') renderDone();
+}
+
+function renderPending() {
+  const j = S.user; if (!j) return;
+  const allIds  = Object.entries(S.assignments).filter(([a,jids])=>jids.includes(j.id)).map(([a])=>+a);
+  const pending = allIds.filter(id => !getEval(id, j.id));
+  const done    = allIds.length - pending.length;
+  document.getElementById('j-s-total').textContent   = allIds.length;
+  document.getElementById('j-s-pending').textContent = pending.length;
+  document.getElementById('j-s-done').textContent    = done;
+
+  const po = {high:0, medium:1, low:2};
+  const apps = pending.map(id => S.apps.find(a=>a.id===id)).filter(Boolean)
+    .sort((a,b) => po[a.priority] - po[b.priority]);
+
+  const cont = document.getElementById('j-pending-list');
+  if (!apps.length) {
+    cont.innerHTML = '<div class="empty-state">All evaluations completed. Great work!</div>';
+    return;
+  }
+  cont.innerHTML = apps.map(app => {
+    const gu = ghUser(app.github);
+    const yearBadge = app.year ? `<span class="badge badge-${app.priority==='high'?'green':app.priority==='medium'?'orange':'gray'}">${app.year}</span>` : '';
+    const campusCount = app.campus ? S.apps.filter(a => a.campus === app.campus).length : 0;
+    const campusMeta = [app.campus||'—', app.campusType, campusCount > 1 ? `${campusCount} applicants from this campus` : null].filter(Boolean).join(' · ');
+    return `<div class="app-card" onclick="openEval(${app.id})">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div>
+          <div class="fw-600">${esc(app.name)||'—'}</div>
+          <div class="text-sm text-muted mt-1">${esc(campusMeta)}</div>
+        </div>
+        <div class="flex gap-2 items-center flex-wrap">
+          ${yearBadge}
+          ${gu ? `<a href="${fixUrl(app.github)}" target="_blank" onclick="event.stopPropagation()" class="badge badge-gray">GitHub</a>` : ''}
+          ${app.drive ? `<a href="${fixUrl(app.drive)}" target="_blank" onclick="event.stopPropagation()" class="badge badge-blue">Drive / Video</a>` : ''}
+          <button class="btn btn-primary btn-sm">Evaluate</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDone() {
+  const j = S.user;
+  const done = Object.entries(S.assignments)
+    .filter(([a,jids])=>jids.includes(j.id)&&getEval(+a,j.id))
+    .map(([a]) => { const app=S.apps.find(x=>x.id===+a); const ev=getEval(+a,j.id); return {app,ev}; })
+    .filter(x=>x.app);
+  const cont = document.getElementById('j-done-list');
+  if (!done.length) { cont.innerHTML='<div class="empty-state">No completed evaluations yet.</div>'; return; }
+  cont.innerHTML = done.map(({app,ev}) => `
+    <div class="app-card">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div>
+          <div class="fw-600">${esc(app.name)}</div>
+          <div class="text-sm text-muted">${esc(app.campus||'—')}${app.campusType ? ' · '+esc(app.campusType) : ''}</div>
+        </div>
+        <div class="flex gap-2 items-center">
+          <span class="badge badge-green">${ev.score} / 7</span>
+          ${ev.comments ? `<span class="text-sm text-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">"${esc(ev.comments)}"</span>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="openEval(${app.id})">Edit</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// JURY — EVALUATION VIEW
+// ══════════════════════════════════════════════
+function openEval(appId) {
+  const app = S.apps.find(a=>a.id===+appId); if (!app) return;
+  const j = S.user;
+  const existing = getEval(+appId, j.id);
+  const gu = ghUser(app.github);
+
+  // Store URLs in global so onclick buttons can access them safely
+  const portfolioUrl = app.raw && col('PORTFOLIO')>=0 ? fixUrl(app.raw[col('PORTFOLIO')]) : '';
+  const linkedinUrl  = app.raw && col('LINKEDIN')>=0  ? fixUrl(app.raw[col('LINKEDIN')])  : '';
+  _evalUrls = {
+    drive:     fixUrl(app.drive),
+    github:    fixUrl(app.github),
+    portfolio: portfolioUrl,
+    linkedin:  linkedinUrl
+  };
+
+  const studyYear = yearToStudy(app.year);
+  const yearLabel = app.year ? `${app.year}${studyYear ? ' · ' + studyYear : ''}` : '';
+
+  document.getElementById('jt-assigned').classList.add('hidden');
+  document.getElementById('jt-completed').classList.add('hidden');
+  document.getElementById('jt-eval').classList.remove('hidden');
+
+  document.getElementById('eval-content').innerHTML = `
+    <div style="overflow-y:auto;max-height:calc(100vh - 120px);padding-right:4px">
+
+      <!-- Header -->
+      <div class="card mb-3">
+        <div class="flex justify-between items-start flex-wrap gap-3">
+          <div>
+            <h2 style="font-size:1.2rem">${esc(app.name||'—')}</h2>
+            <div class="text-sm text-muted mt-1">${esc(app.campus||'—')}${app.campusType ? ' · <em>'+esc(app.campusType)+'</em>' : ''}${app.campus && S.apps.filter(a=>a.campus===app.campus).length>1 ? ' · '+S.apps.filter(a=>a.campus===app.campus).length+' applicants from this campus' : ''}</div>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            ${yearLabel ? `<span class="badge badge-${app.priority==='high'?'green':app.priority==='medium'?'orange':'gray'}">${yearLabel}</span>` : ''}
+            ${app.gender ? `<span class="badge badge-gray">${esc(app.gender)}</span>` : ''}
+          </div>
+        </div>
+
+        <!-- Quick Links — use onclick buttons, not <a href>, for reliability across environments -->
+        <div class="links-strip mt-3">
+          ${_evalUrls.drive    ? `<button class="btn btn-primary btn-sm" onclick="openEvalLink('drive')">Open Drive / Video Responses</button>` : ''}
+          ${_evalUrls.github   ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('github')">View GitHub &nbsp;(@${esc(gu)})</button>` : ''}
+          ${_evalUrls.portfolio? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('portfolio')">Portfolio</button>` : ''}
+          ${_evalUrls.linkedin ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('linkedin')">LinkedIn</button>` : ''}
+        </div>
+      </div>
+
+      <!-- All Application Fields — Dynamic -->
+      ${buildJuryFields(app)}
+
+    </div>
+
+    <!-- Score Panel -->
+    <div>
+      <div class="score-panel">
+        <div class="fw-700 mb-1" style="font-size:0.95rem">Your Score</div>
+        <div class="text-sm text-muted mb-3">Rate this applicant out of 7</div>
+        <div class="score-big" id="sc-disp">${existing ? existing.score : 4}<span class="score-denom">/7</span></div>
+        <input type="range" id="sc-range" min="1" max="7" step="1" value="${existing ? existing.score : 4}"
+          oninput="updScore(this.value)">
+        <div class="flex justify-between text-xs text-muted mb-4">
+          <span>1 — Weak</span><span>4 — Average</span><span>7 — Excellent</span>
+        </div>
+        <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:14px">
+          <div class="text-xs fw-600 mb-2" style="text-transform:uppercase;letter-spacing:0.4px">Scoring Guide</div>
+          <div class="text-xs" style="line-height:2;color:var(--muted)">
+            1 – 2 &nbsp; Weak fit, unclear vision<br>
+            3 – 4 &nbsp; Average, some potential<br>
+            5 – 6 &nbsp; Strong community drive<br>
+            7 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Exceptional — ideal lead
+          </div>
+        </div>
+        <div class="fg">
+          <label>Comments (optional)</label>
+          <textarea id="sc-comments" rows="4" placeholder="Observations, reasoning, concerns...">${existing ? esc(existing.comments) : ''}</textarea>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="submitEval(${appId})">
+          ${existing ? 'Update Evaluation' : 'Submit Evaluation'}
+        </button>
+        ${existing ? `<div class="text-xs text-muted mt-2" style="text-align:center">Previously submitted: ${existing.score}/7</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function buildJuryFields(app) {
+  if (!S.headers.length || !app.raw) {
+    // Fallback if no CSV headers stored
+    return `<div class="card">
+      <div class="section-head">Applicant Details</div>
+      ${app.name ? ab('Name', app.name) : ''}
+      ${app.campus ? ab('Campus', app.campus + (app.campusType ? ' · ' + app.campusType : '')) : ''}
+
+      ${app.gender ? ab('Gender', app.gender) : ''}
+      ${app.year ? ab('Graduation Year', String(app.year)) : ''}
+    </div>`;
+  }
+
+  // Columns hidden from jury view (shown in header strip, irrelevant, or sensitive)
+  function skipInJury(hl) {
+    if (hl.startsWith('timestamp')) return true;
+    if (hl.includes('name (from campus')) return true;
+    if (hl.includes('i understand') && hl.includes('cannot hold')) return true;
+    // Contact info — not needed for evaluation
+    if (hl.includes('your email') || hl === 'email id') return true;
+    if (hl.includes('contact number') || hl.includes('phone number') || hl.includes('mobile')) return true;
+    // Video format meta-question — not an answer, just an instruction
+    if (hl.includes('all answers must be submitted through video')) return true;
+    // Links already shown in the strip above
+    if (hl.includes('github')) return true;
+    if (hl.includes('portfolio')) return true;
+    if (hl.includes('linkedin')) return true;
+    if (hl.includes('drive link')) return true;
+    return false;
+  }
+
+  const basicCols = new Set(['your name','campus name','institution name','gender','graduation year','does your campus have a tinkerhub campus community?']);
+  const basics = [], answers = [];
+  let yearShown = false;
+
+  S.headers.forEach((header, i) => {
+    const hl = header.toLowerCase().trim();
+    if (skipInJury(hl)) return;
+    const val = (app.raw[i] || '').trim();
+    if (!val) return;
+
+    // Graduation year — show once with study year label
+    const isYearCol = hl.includes('graduation year') || hl.includes('graduating year');
+    if (isYearCol) {
+      if (yearShown) return;
+      yearShown = true;
+      const study = yearToStudy(val);
+      const display = study ? `${val} (${study})` : val;
+      basics.push(`<div class="answer-box"><div class="answer-q">Graduation Year</div><div class="answer-a">${esc(display)}</div></div>`);
+      return;
+    }
+
+    const isBasic = basicCols.has(hl);
+    const block = `<div class="answer-box"><div class="answer-q">${esc(header)}</div><div class="answer-a">${esc(val)}</div></div>`;
+    if (isBasic) basics.push(block);
+    else answers.push(block);
+  });
+
+  let html = '';
+  if (basics.length) html += `<div class="card mb-3"><div class="section-head">Applicant Info</div>${basics.join('')}</div>`;
+  if (answers.length) html += `<div class="card"><div class="section-head">Application Responses</div>${answers.join('')}</div>`;
+  return html || '<div class="card"><div class="empty-state">No fields found. Check that your CSV was uploaded correctly.</div></div>';
+}
+
+function ab(label, val) {
+  if (!val) return '';
+  return `<div class="answer-box"><div class="answer-q">${esc(label)}</div><div class="answer-a">${esc(val)}</div></div>`;
+}
+
+// ══════════════════════════════════════════════
+// JURY — SUBMIT
+// ══════════════════════════════════════════════
+function submitEval(appId) {
+  const score    = +document.getElementById('sc-range').value;
+  const comments = document.getElementById('sc-comments').value.trim();
+  S.evals[`${+appId}_${S.user.id}`] = { score, comments, ts: Date.now() };
+  save();
+
+  // Push to Airtable (non-blocking — runs in background)
+  pushEvalToAirtable(+appId);
+
+  // Auto-assign 3rd evaluator if flagged
+  const r = appResult(+appId);
+  let msg = `Score submitted: ${score}/7`;
+  if (r && r.flagged) {
+    const cur = S.assignments[+appId] || [];
+    if (cur.length === 2) {
+      const eligible = S.jury.filter(j => !cur.includes(j.id));
+      if (eligible.length) {
+        const lo = eligible.reduce((a,b) => {
+          const la = Object.values(S.assignments).filter(x=>x.includes(a.id)).length;
+          const lb = Object.values(S.assignments).filter(x=>x.includes(b.id)).length;
+          return la <= lb ? a : b;
+        });
+        S.assignments[+appId] = [...cur, lo.id];
+        save();
+      }
+    }
+    msg += '\n\nNote: Score difference is 3 or more. A third evaluator has been assigned to this application.';
+  }
+
+  alert(msg);
+  backToList();
+}
+
+function backToList() {
+  document.getElementById('jt-eval').classList.add('hidden');
+  document.getElementById('jt-assigned').classList.remove('hidden');
+  renderPending();
+}
+
+// ══════════════════════════════════════════════
+// SCORE DISPLAY HELPER (avoids <span> inside oninput attribute)
+// ══════════════════════════════════════════════
+function updScore(v) {
+  const el = document.getElementById('sc-disp');
+  if (el) el.innerHTML = v + '<span class="score-denom">/7</span>';
+}
+
+// ══════════════════════════════════════════════
+// LINK OPENER — bypasses preview/sandbox restrictions
+// ══════════════════════════════════════════════
+let _evalUrls = {};
+function openEvalLink(key) {
+  const url = _evalUrls[key];
+  if (!url) return;
+  // Create a real DOM anchor and click it — most reliable cross-browser approach
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => document.body.removeChild(a), 100);
+}
+
+// ══════════════════════════════════════════════
+// YEAR → STUDY YEAR MAPPING
+// ══════════════════════════════════════════════
+function yearToStudy(yr) {
+  const map = { 2025: 'Alumni', 2026: '4th Year', 2027: '3rd Year', 2028: '2nd Year', 2029: '1st Year' };
+  return map[+yr] || '';
+}
+
+// ══════════════════════════════════════════════
+// URL NORMALISER — trims whitespace, ensures https://
+// ══════════════════════════════════════════════
+function fixUrl(u) {
+  u = (u || '').trim();
+  if (!u) return '';
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith('//')) return 'https:' + u;
+  return 'https://' + u;
+}
+
+// ══════════════════════════════════════════════
+// CROSS-TAB SYNC — admin auto-refreshes when jury submits in another tab
+// ══════════════════════════════════════════════
+window.addEventListener('storage', function(e) {
+  if (e.key !== 'th_eval2') return;
+  load(); // pull latest state from storage
+  // If admin is logged in and on a visible tab, refresh the current view
+  if (S.user && S.user.role === 'admin') {
+    const tabs = ['overview','applications','jury','results'];
+    const active = tabs.find(t => {
+      const el = document.getElementById('at-' + t);
+      return el && !el.classList.contains('hidden');
+    }) || 'overview';
+    if (active === 'overview') renderOverview();
+    else if (active === 'applications') renderAppsTable();
+    else if (active === 'jury') renderJuryFull();
+    else if (active === 'results') renderResultsTable('shortlisted');
+  }
+});
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+load();                  // fast: restore from localStorage immediately
+syncFromServer();        // then pull latest shared state from server
+</script>
+</body>
+</html>
