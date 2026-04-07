@@ -672,6 +672,16 @@ function applyState(d) {
     raw: a.raw || localRawMap[a.id] || null  // restore raw if we have it locally
   }));
 
+  // Re-derive campus from raw data to fix stale Airtable record IDs
+  // colMap.CAMPUS points to "Name (from Campus Name)" in stripped headers
+  if (S.colMap.CAMPUS >= 0) {
+    S.apps.forEach(a => {
+      if (a.raw && a.raw[S.colMap.CAMPUS]) {
+        a.campus = a.raw[S.colMap.CAMPUS];
+      }
+    });
+  }
+
   const newA = {};
   Object.entries(S.assignments).forEach(([k,v]) => { newA[+k] = v; });
   S.assignments = newA;
@@ -962,11 +972,13 @@ async function pushEvalToAirtable(appId) {
   // Compute combined scores + status label
   const status = r.complete ? (r.normAvg > 5 ? 'Ideal' : r.normAvg > 3 ? 'Shortlisted' : 'Below Threshold') : 'Evaluating';
   const jids   = S.assignments[+appId] || [];
-  const allComments = jids.map(jid => getEval(+appId, jid)?.comments || '').filter(Boolean).join(' | ');
-  const juryNames   = jids.map(jid => { const j = S.jury.find(x=>x.id===jid); return j ? (j.name||j.email) : ''; }).filter(Boolean).join(', ');
+  // Only include jury members who have actually submitted an eval
+  const submittedJids = jids.filter(jid => getEval(+appId, jid));
+  const allComments = submittedJids.map(jid => getEval(+appId, jid)?.comments || '').filter(Boolean).join(' | ');
+  const juryNames   = submittedJids.map(jid => { const j = S.jury.find(x=>x.id===jid); return j ? (j.name||j.email) : ''; }).filter(Boolean).join(', ');
 
   const fields = {
-    'Eval Score':      r.complete ? +r.rawAvg.toFixed(2)  : null,
+    'Eval Score':      +r.rawAvg.toFixed(2),   // write partial score too (avg of submitted so far)
     'Eval Norm Score': r.complete ? +r.normAvg.toFixed(2) : null,
     'Eval Status':     status,
     'Eval Jury Count': r.evs.length,
