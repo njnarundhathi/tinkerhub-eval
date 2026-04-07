@@ -548,10 +548,10 @@ input[type=range] { width: 100%; accent-color: var(--orange); cursor: pointer; m
         </div>
       </div>
       <div class="tabs">
-        <button class="tab active" onclick="rTab('shortlisted')">Shortlisted (avg &gt; 3)</button>
+        <button class="tab" onclick="rTab('shortlisted')">Shortlisted (avg &gt; 3)</button>
         <button class="tab" onclick="rTab('ideal')">Ideal (avg &gt; 5)</button>
         <button class="tab" onclick="rTab('flagged')">Flagged — 3rd Evaluator</button>
-        <button class="tab" onclick="rTab('all')">All Evaluated</button>
+        <button class="tab active" onclick="rTab('all')">All Evaluated</button>
       </div>
       <div class="card">
         <div class="tbl-wrap">
@@ -734,7 +734,7 @@ async function syncFromServer(force) {
       if (active === 'overview') renderOverview();
       else if (active === 'applications') renderAppsTable();
       else if (active === 'jury') renderJuryFull();
-      else if (active === 'results') renderResultsTable('shortlisted');
+      else if (active === 'results') renderResultsTable('all');
     } else if (S.user && S.user.role === 'jury') {
       renderPending();
     }
@@ -1347,7 +1347,7 @@ function aTab(t) {
   if (t==='overview')  { renderOverview(); }
   if (t==='applications') renderAppsTable();
   if (t==='jury') renderJuryFull();
-  if (t==='results') renderResultsTable('shortlisted');
+  if (t==='results') renderResultsTable('all');
 }
 
 function renderAppsTable() {
@@ -1730,7 +1730,7 @@ function buildJuryFields(app) {
   function skipInJury(hl) {
     if (hl === '_airtable_id') return true;
     if (hl.startsWith('timestamp')) return true;
-    if (hl.includes('name (from campus')) return true;
+    if (hl === 'campus name') return true;  // linked record field — returns record IDs, use lookup instead
     if (hl.includes('i understand') && hl.includes('cannot hold')) return true;
     // Contact info — not needed for evaluation
     if (hl.includes('your email') || hl === 'email id') return true;
@@ -1749,15 +1749,27 @@ function buildJuryFields(app) {
     return false;
   }
 
-  const basicCols = new Set(['your name','campus name','institution name','gender','graduation year','does your campus have a tinkerhub campus community?']);
+  const basicCols = new Set(['your name','campus name','name (from campus name)','institution name','gender','graduation year','does your campus have a tinkerhub campus community?']);
+  // Relabel Airtable lookup fields for cleaner display
+  const labelOverride = { 'name (from campus name)': 'Campus Name', 'campus name (from campus name)': 'Campus Name' };
   const basics = [], answers = [];
   let yearShown = false;
+  let campusShown = false;
 
   S.headers.forEach((header, i) => {
     const hl = header.toLowerCase().trim();
     if (skipInJury(hl)) return;
     const val = (app.raw[i] || '').trim();
     if (!val) return;
+
+    // Campus — show once, prefer the lookup field value
+    const isCampusCol = hl.includes('name (from campus');
+    if (isCampusCol) {
+      if (campusShown) return;
+      campusShown = true;
+      basics.push(`<div class="answer-box"><div class="answer-q">Campus Name</div><div class="answer-a">${esc(val)}</div></div>`);
+      return;
+    }
 
     // Graduation year — show once with study year label
     const isYearCol = hl.includes('graduation year') || hl.includes('graduating year');
@@ -1770,8 +1782,9 @@ function buildJuryFields(app) {
       return;
     }
 
+    const displayLabel = labelOverride[hl] || header;
     const isBasic = basicCols.has(hl);
-    const block = `<div class="answer-box"><div class="answer-q">${esc(header)}</div><div class="answer-a">${esc(val)}</div></div>`;
+    const block = `<div class="answer-box"><div class="answer-q">${esc(displayLabel)}</div><div class="answer-a">${esc(val)}</div></div>`;
     if (isBasic) basics.push(block);
     else answers.push(block);
   });
@@ -1890,7 +1903,7 @@ window.addEventListener('storage', function(e) {
     if (active === 'overview') renderOverview();
     else if (active === 'applications') renderAppsTable();
     else if (active === 'jury') renderJuryFull();
-    else if (active === 'results') renderResultsTable('shortlisted');
+    else if (active === 'results') renderResultsTable('all');
   }
 });
 
