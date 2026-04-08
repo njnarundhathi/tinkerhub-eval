@@ -76,18 +76,24 @@ export default async function handler(req, res) {
         const merged = { ...existing, evals: body.evals, _savedAt: body._savedAt };
         payload = JSON.stringify(merged);
       } else {
-        // Admin/full save: strip heavy fields before storing to stay under
-        // Airtable's 100K character limit per field.
-        // - raw: full CSV row (large, already excluded from state)
-        // - vision/challenges/about/why/community: long-form text answers
-        //   (these are fetched live from Airtable when a jury member opens an app)
-        const STRIP = new Set(['raw','vision','challenges','about','why','community']);
+        // Admin/full save: keep only the fields needed for the jury list view.
+        // Everything else (text answers, links) is fetched live from Airtable
+        // when a jury member opens an app. This keeps the payload well under
+        // Airtable's 100K character limit even with 300+ apps.
+        const KEEP = new Set(['id','airtableId','name','campus','campusType','year','priority','gender','isRejected']);
         const appsToStore = (body.apps || []).map(a => {
           const cleaned = {};
-          for (const k of Object.keys(a)) { if (!STRIP.has(k)) cleaned[k] = a[k]; }
+          for (const k of KEEP) { if (a[k] !== undefined) cleaned[k] = a[k]; }
           return cleaned;
         });
-        payload = JSON.stringify({ ...body, apps: appsToStore });
+        const slim = { ...body, apps: appsToStore };
+        delete slim.colMap; // recomputed client-side from headers — no need to store
+        payload = JSON.stringify(slim);
+
+        // Guard: warn if still approaching limit (shouldn't happen with KEEP whitelist)
+        if (payload.length > 95000) {
+          console.warn(`[state] payload ${payload.length} chars — approaching 100K limit`);
+        }
       }
 
       const record = await getRecord();

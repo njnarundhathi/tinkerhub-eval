@@ -717,8 +717,9 @@ async function syncToServer() {
       body: JSON.stringify(payload)
     });
     const data = await resp.json();
+    if (data.error) console.error('[sync] Server save failed:', data.error);
     if (data.savedAt) _serverSavedAt = data.savedAt;
-  } catch(e) { /* non-fatal — local state is the fallback */ }
+  } catch(e) { console.error('[sync] syncToServer error:', e.message); }
   _syncInFlight = false;
 }
 
@@ -1653,8 +1654,9 @@ function renderDone() {
 async function openEval(appId) {
   const app = S.apps.find(a=>a.id===+appId); if (!app) return;
 
-  // If text answers are missing (other device, no raw) fetch them live from Airtable
-  if (!app.raw && !app.vision && app.airtableId) {
+  // If key fields are missing (other device, no raw) fetch them live from Airtable.
+  // github and drive are now stripped from server state to save space, so check those too.
+  if (!app.raw && app.airtableId && (!app.vision || !app.github || !app.drive)) {
     try {
       const resp = await fetch(`${AT_ENDPOINT}?recordId=${encodeURIComponent(app.airtableId)}`);
       if (resp.ok) {
