@@ -66,15 +66,25 @@ export default async function handler(req, res) {
       const body    = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       body._savedAt = Date.now();
 
-      // Strip the heavy `raw` field from apps before storing —
-      // raw contains all the long-form text answers and would blow the
-      // Airtable 100K character limit. It stays in each device's localStorage.
-      const appsToStore = (body.apps || []).map(a => {
-        const { raw: _raw, ...rest } = a;
-        return rest;
-      });
+      let payload;
 
-      const payload = JSON.stringify({ ...body, apps: appsToStore });
+      if (body._juryOnly) {
+        // Jury save: only merge evals into existing state — never overwrite
+        // apps, headers, jury, assignments (those are admin-managed data)
+        const record = await getRecord();
+        const existing = record?.fields?.Config ? JSON.parse(record.fields.Config) : {};
+        const merged = { ...existing, evals: body.evals, _savedAt: body._savedAt };
+        payload = JSON.stringify(merged);
+      } else {
+        // Admin/full save: strip the heavy `raw` field from apps before storing —
+        // raw contains all the long-form text answers and would blow the
+        // Airtable 100K character limit. It stays in each device's localStorage.
+        const appsToStore = (body.apps || []).map(a => {
+          const { raw: _raw, ...rest } = a;
+          return rest;
+        });
+        payload = JSON.stringify({ ...body, apps: appsToStore });
+      }
 
       const record = await getRecord();
 

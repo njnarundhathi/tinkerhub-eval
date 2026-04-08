@@ -707,7 +707,10 @@ async function syncToServer() {
   if (_syncInFlight) return;
   _syncInFlight = true;
   try {
-    const payload = statePayload();
+    // Jury members only push their eval scores — never overwrite apps/campus/assignments
+    const payload = (S.user && S.user.role === 'jury')
+      ? { evals: S.evals, _juryOnly: true }
+      : statePayload();
     const resp = await fetch('/api/state', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1076,6 +1079,11 @@ function processApplicationRows(records) {
       priority: prio(yr),
       github: raw[cm.GITHUB] || '',
       drive: raw[cm.DRIVE] || '',
+      vision: raw[cm.VISION] || '',
+      challenges: raw[cm.CHALLENGES] || '',
+      about: raw[cm.ABOUT] || '',
+      why: raw[cm.WHY] || '',
+      community: raw[cm.COMMUNITY] || '',
       isRejected,
       raw: cleanRaw
     };
@@ -1754,9 +1762,21 @@ function buildJuryFields(app) {
     { label: 'Drive Link',        idx: hIdx('drive link') },
   ];
 
+  // ── Stored fields fallback (used when app.raw is null on other devices) ──
+  const storedFields = {
+    'Vision':               app.vision     || '',
+    'Challenges':           app.challenges || '',
+    'About You':            app.about      || '',
+    'Why TinkerHub?':       app.why        || '',
+    'Community Experience': app.community  || '',
+    'Drive Link':           app.drive      || '',
+  };
+
   const basics = [], answers = [];
   JURY_WHITELIST.forEach(({ label, idx, val }) => {
-    const v = val !== undefined ? val : rawVal(idx);
+    // Prefer raw value, fall back to stored field
+    let v = val !== undefined ? val : rawVal(idx);
+    if (!v && storedFields[label] !== undefined) v = storedFields[label];
     if (!v) return;
     const isDrive = label === 'Drive Link';
     const display = isDrive
@@ -1767,13 +1787,14 @@ function buildJuryFields(app) {
     else answers.push(block);
   });
 
-  // Fallback if raw not available (other device without raw data)
-  if (!app.raw) {
-    return `<div class="card">
-      <div class="section-head">Applicant Info</div>
-      ${app.name   ? ab('Name',   app.name)   : ''}
-      ${app.campus ? ab('Campus', app.campus) : ''}
-    </div>`;
+  // If campus still empty (raw null, campusVal empty), fall back to app.campus
+  if (!basics.find(b => b.includes('>Campus<'))) {
+    const campusFallback = app.campus || '';
+    if (campusFallback) basics.unshift(`<div class="answer-box"><div class="answer-q">Campus</div><div class="answer-a">${esc(campusFallback)}</div></div>`);
+  }
+  if (!basics.find(b => b.includes('>Name<'))) {
+    const nameFallback = app.name || '';
+    if (nameFallback) basics.unshift(`<div class="answer-box"><div class="answer-q">Name</div><div class="answer-a">${esc(nameFallback)}</div></div>`);
   }
 
   let html = '';
