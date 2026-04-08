@@ -33,9 +33,29 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'AIRTABLE_PAT environment variable is not set' });
   }
 
-  // ── GET: fetch all application records ───────────────────────
+  // ── GET: fetch all records OR single record ──────────────────
   if (req.method === 'GET') {
     try {
+      // Single-record fetch: GET /api/airtable?recordId=recXXXXXX
+      if (req.query.recordId) {
+        const resp = await fetch(`${AT_BASE}/${req.query.recordId}`, {
+          headers: { Authorization: `Bearer ${PAT}` }
+        });
+        const data = await resp.json();
+        if (data.error) return res.status(resp.status).json({ error: data.error.message || 'Airtable error' });
+
+        const fields = Object.keys(data.fields);
+        const headers = ['_airtable_id', ...fields];
+        const row = [data.id, ...fields.map(f => {
+          const v = data.fields[f];
+          if (v === undefined || v === null) return '';
+          if (Array.isArray(v)) return v.join(', ');
+          if (typeof v === 'object' && v.url) return v.url;
+          return String(v);
+        })];
+        return res.json({ headers, rows: [row] });
+      }
+
       const records = [];
       let offset = null;
 

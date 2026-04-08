@@ -76,12 +76,16 @@ export default async function handler(req, res) {
         const merged = { ...existing, evals: body.evals, _savedAt: body._savedAt };
         payload = JSON.stringify(merged);
       } else {
-        // Admin/full save: strip the heavy `raw` field from apps before storing —
-        // raw contains all the long-form text answers and would blow the
-        // Airtable 100K character limit. It stays in each device's localStorage.
+        // Admin/full save: strip heavy fields before storing to stay under
+        // Airtable's 100K character limit per field.
+        // - raw: full CSV row (large, already excluded from state)
+        // - vision/challenges/about/why/community: long-form text answers
+        //   (these are fetched live from Airtable when a jury member opens an app)
+        const STRIP = new Set(['raw','vision','challenges','about','why','community']);
         const appsToStore = (body.apps || []).map(a => {
-          const { raw: _raw, ...rest } = a;
-          return rest;
+          const cleaned = {};
+          for (const k of Object.keys(a)) { if (!STRIP.has(k)) cleaned[k] = a[k]; }
+          return cleaned;
         });
         payload = JSON.stringify({ ...body, apps: appsToStore });
       }

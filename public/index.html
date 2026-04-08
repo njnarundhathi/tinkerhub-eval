@@ -1650,8 +1650,30 @@ function renderDone() {
 // ══════════════════════════════════════════════
 // JURY — EVALUATION VIEW
 // ══════════════════════════════════════════════
-function openEval(appId) {
+async function openEval(appId) {
   const app = S.apps.find(a=>a.id===+appId); if (!app) return;
+
+  // If text answers are missing (other device, no raw) fetch them live from Airtable
+  if (!app.raw && !app.vision && app.airtableId) {
+    try {
+      const resp = await fetch(`${AT_ENDPOINT}?recordId=${encodeURIComponent(app.airtableId)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.headers && data.rows && data.rows[0]) {
+          const cm2 = detectColumns(data.headers);
+          const row = data.rows[0];
+          app.vision     = row[cm2.VISION]     || '';
+          app.challenges = row[cm2.CHALLENGES] || '';
+          app.about      = row[cm2.ABOUT]      || '';
+          app.why        = row[cm2.WHY]        || '';
+          app.community  = row[cm2.COMMUNITY]  || '';
+          if (!app.drive) app.drive = fixUrl(row[cm2.DRIVE] || '');
+          if (!app.github) app.github = row[cm2.GITHUB] || '';
+        }
+      }
+    } catch(e) { console.warn('Could not fetch app details:', e.message); }
+  }
+
   const j = S.user;
   const existing = getEval(+appId, j.id);
   const gu = ghUser(app.github);
