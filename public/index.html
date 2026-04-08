@@ -746,7 +746,9 @@ async function syncFromServer(force) {
       else if (active === 'jury') renderJuryFull();
       else if (active === 'results') renderResultsTable('all');
     } else if (S.user && S.user.role === 'jury') {
-      renderPending();
+      // Re-render whichever jury tab is active
+      const completedVisible = !document.getElementById('jt-completed')?.classList.contains('hidden');
+      if (completedVisible) renderDone(); else renderPending();
     }
   } catch(e) { /* non-fatal — local state is the fallback */ }
 }
@@ -1726,85 +1728,58 @@ function openEval(appId) {
 }
 
 function buildJuryFields(app) {
-  if (!S.headers.length || !app.raw) {
-    // Fallback if no CSV headers stored
-    return `<div class="card">
-      <div class="section-head">Applicant Details</div>
-      ${app.name ? ab('Name', app.name) : ''}
-      ${app.campus ? ab('Campus', app.campus + (app.campusType ? ' · ' + app.campusType : '')) : ''}
+  // Helper: find index in stripped headers by partial match
+  function hIdx(term) {
+    return S.headers.findIndex(h => h.toLowerCase().includes(term.toLowerCase()));
+  }
+  function rawVal(i) { return i >= 0 && app.raw ? (app.raw[i] || '').trim() : ''; }
 
-      ${app.gender ? ab('Gender', app.gender) : ''}
-      ${app.year ? ab('Graduation Year', String(app.year)) : ''}
-    </div>`;
+  // ── Campus with "Other" fallback to Institution Name ──────────
+  const campusIdx = hIdx('name (from campus');
+  const instIdx   = hIdx('institution name') >= 0 ? hIdx('institution name') : hIdx('college name');
+  let campusVal = rawVal(campusIdx);
+  if (!campusVal || campusVal.toLowerCase() === 'other') {
+    campusVal = rawVal(instIdx) || campusVal;
   }
 
-  // Columns hidden from jury view (shown in header strip, irrelevant, or sensitive)
-  function skipInJury(hl) {
-    if (hl === '_airtable_id') return true;
-    if (hl.startsWith('timestamp')) return true;
-    if (hl === 'campus name') return true;  // linked record field — returns record IDs, use lookup instead
-    if (hl.includes('i understand') && hl.includes('cannot hold')) return true;
-    // Contact info — not needed for evaluation
-    if (hl.includes('your email') || hl === 'email id') return true;
-    if (hl.includes('contact number') || hl.includes('phone number') || hl.includes('mobile')) return true;
-    // Video format meta-question — not an answer, just an instruction
-    if (hl.includes('all answers must be submitted through video')) return true;
-    // Links already shown in the strip above
-    if (hl.includes('github')) return true;
-    if (hl.includes('portfolio')) return true;
-    if (hl.includes('linkedin')) return true;
-    if (hl.includes('drive link')) return true;
-    // Internal/admin-only Airtable fields
-    if (hl.includes('added to sheet')) return true;
-    if (hl.includes('thank you mail')) return true;
-    if (hl.includes('eval score') || hl.includes('eval status') || hl.includes('eval notes')) return true;
-    return false;
-  }
+  // ── Whitelist: exactly what jury sees, in this order ─────────
+  const JURY_WHITELIST = [
+    { label: 'Name',              idx: hIdx('your name') },
+    { label: 'Campus',            val: campusVal },
+    { label: 'Vision',            idx: hIdx("what's your vision") >= 0 ? hIdx("what's your vision") : hIdx('vision for integrat') },
+    { label: 'Challenges',        idx: hIdx('challenges') >= 0 ? hIdx('challenges you foresee') >= 0 ? hIdx('challenges you foresee') : hIdx('challenges') : -1 },
+    { label: 'About You',         idx: hIdx('tell us about you') >= 0 ? hIdx('tell us about you') : hIdx('shaped you') },
+    { label: 'Why TinkerHub?',    idx: hIdx('why the tinkerhub') >= 0 ? hIdx('why the tinkerhub') : hIdx('why tinkerhub') },
+    { label: 'Community Experience', idx: hIdx('have you led or been') >= 0 ? hIdx('have you led or been') : hIdx('led or been part') },
+    { label: 'Drive Link',        idx: hIdx('drive link') },
+  ];
 
-  const basicCols = new Set(['your name','campus name','name (from campus name)','institution name','gender','graduation year','does your campus have a tinkerhub campus community?']);
-  // Relabel Airtable lookup fields for cleaner display
-  const labelOverride = { 'name (from campus name)': 'Campus Name', 'campus name (from campus name)': 'Campus Name' };
   const basics = [], answers = [];
-  let yearShown = false;
-  let campusShown = false;
-
-  S.headers.forEach((header, i) => {
-    const hl = header.toLowerCase().trim();
-    if (skipInJury(hl)) return;
-    const val = (app.raw[i] || '').trim();
-    if (!val) return;
-
-    // Campus — show once, prefer the lookup field value
-    const isCampusCol = hl.includes('name (from campus');
-    if (isCampusCol) {
-      if (campusShown) return;
-      campusShown = true;
-      basics.push(`<div class="answer-box"><div class="answer-q">Campus Name</div><div class="answer-a">${esc(val)}</div></div>`);
-      return;
-    }
-
-    // Graduation year — show once with study year label
-    const isYearCol = hl.includes('graduation year') || hl.includes('graduating year');
-    if (isYearCol) {
-      if (yearShown) return;
-      yearShown = true;
-      const study = yearToStudy(val);
-      const display = study ? `${val} (${study})` : val;
-      basics.push(`<div class="answer-box"><div class="answer-q">Graduation Year</div><div class="answer-a">${esc(display)}</div></div>`);
-      return;
-    }
-
-    const displayLabel = labelOverride[hl] || header;
-    const isBasic = basicCols.has(hl);
-    const block = `<div class="answer-box"><div class="answer-q">${esc(displayLabel)}</div><div class="answer-a">${esc(val)}</div></div>`;
-    if (isBasic) basics.push(block);
+  JURY_WHITELIST.forEach(({ label, idx, val }) => {
+    const v = val !== undefined ? val : rawVal(idx);
+    if (!v) return;
+    const isDrive = label === 'Drive Link';
+    const display = isDrive
+      ? `<a href="${fixUrl(v)}" target="_blank" style="word-break:break-all">${esc(v)}</a>`
+      : esc(v);
+    const block = `<div class="answer-box"><div class="answer-q">${esc(label)}</div><div class="answer-a">${display}</div></div>`;
+    if (['Name','Campus'].includes(label)) basics.push(block);
     else answers.push(block);
   });
 
+  // Fallback if raw not available (other device without raw data)
+  if (!app.raw) {
+    return `<div class="card">
+      <div class="section-head">Applicant Info</div>
+      ${app.name   ? ab('Name',   app.name)   : ''}
+      ${app.campus ? ab('Campus', app.campus) : ''}
+    </div>`;
+  }
+
   let html = '';
-  if (basics.length) html += `<div class="card mb-3"><div class="section-head">Applicant Info</div>${basics.join('')}</div>`;
+  if (basics.length)  html += `<div class="card mb-3"><div class="section-head">Applicant Info</div>${basics.join('')}</div>`;
   if (answers.length) html += `<div class="card"><div class="section-head">Application Responses</div>${answers.join('')}</div>`;
-  return html || '<div class="card"><div class="empty-state">No fields found. Check that your CSV was uploaded correctly.</div></div>';
+  return html || '<div class="card"><div class="empty-state">No fields found.</div></div>';
 }
 
 function ab(label, val) {
