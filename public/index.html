@@ -236,8 +236,8 @@ tbody tr:hover td { background: #fafbfc; }
 
 /* ── PROGRESS BAR ── */
 .prog { display: flex; align-items: center; gap: 8px; }
-.prog-track { flex: 1; height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
-.prog-fill { height: 100%; background: var(--orange); border-radius: 99px; transition: width 0.3s; }
+.prog-track { flex: 1; height: 10px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--orange); border-radius: 99px; transition: width 0.3s; min-width: 2px; }
 
 /* ── CHART CARDS ── */
 .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
@@ -328,12 +328,39 @@ input[type=range] { width: 100%; accent-color: var(--orange); cursor: pointer; m
 .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.5s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── JURY MOBILE BOTTOM NAV ── */
+.jury-mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  box-shadow: 0 -2px 8px rgba(28,25,23,0.06);
+}
+.jury-mobile-tab {
+  flex: 1;
+  padding: 12px 8px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-top: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+.jury-mobile-tab.active { color: var(--orange); border-top-color: var(--orange); font-weight: 600; }
+
 @media (max-width: 900px) {
   .eval-layout { grid-template-columns: 1fr; }
   .chart-grid { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
   .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; }
   .nav-links { display: none; }
+  .jury-mobile-nav { display: flex; }
+  #jury-panel .page-wrap { padding-bottom: 72px; }
   .stepper { flex-direction: column; }
   .step { border-right: 1px solid var(--border); border-bottom: none; }
   .step:first-child { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
@@ -605,6 +632,11 @@ input[type=range] { width: 100%; accent-color: var(--orange); cursor: pointer; m
       <div class="eval-layout" id="eval-content"></div>
     </div>
   </div>
+  <!-- Mobile bottom tab bar (hidden on desktop via CSS) -->
+  <div class="jury-mobile-nav" id="jury-mobile-nav">
+    <button class="jury-mobile-tab active" id="jmtab-assigned" onclick="jTab('assigned')">My Assignments</button>
+    <button class="jury-mobile-tab" id="jmtab-completed" onclick="jTab('completed')">Completed</button>
+  </div>
 </div>
 
 <!-- ═══ ADMIN APP MODAL ═══ -->
@@ -863,6 +895,17 @@ function prio(y) {
 }
 function isUrl(s) { return /^https?:\/\//i.test(s||''); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Normalise applicant names — convert ALL-CAPS names to Title Case
+function toTitle(s) {
+  if (!s) return s;
+  const str = String(s).trim();
+  // Only apply if the string is mostly uppercase (i.e. > 60% uppercase letters)
+  const letters = str.replace(/[^a-zA-Z]/g,'');
+  if (!letters.length) return str;
+  const upperRatio = (str.match(/[A-Z]/g)||[]).length / letters.length;
+  if (upperRatio < 0.6) return str; // already mixed case — leave as-is
+  return str.toLowerCase().replace(/(?:^|\s|[-])\S/g, c => c.toUpperCase());
+}
 function col(key) { return S.colMap[key] ?? -1; }
 function getVal(raw, key) { const i = col(key); return i >= 0 ? (raw[i]||'') : ''; }
 
@@ -916,6 +959,10 @@ function logout() {
   document.getElementById('inp-apw').value='';
   document.getElementById('inp-jemail').value='';
   document.getElementById('inp-jpw').value='';
+  // Reset page scroll so login card is properly centred
+  window.scrollTo(0, 0);
+  document.documentElement.scrollLeft = 0;
+  document.body.scrollLeft = 0;
 }
 
 // ══════════════════════════════════════════════
@@ -1400,7 +1447,7 @@ function renderAppsTable() {
     const score = r&&r.complete ? `<strong>${r.rawAvg.toFixed(1)}</strong><span class="text-xs text-muted"> (norm: ${r.normAvg.toFixed(1)})</span>` : '—';
     return `<tr>
       <td class="text-muted text-xs">${i+1}</td>
-      <td><div class="fw-600">${esc(app.name)||'—'}</div><div class="text-xs text-muted">${esc(app.email)}</div></td>
+      <td><div class="fw-600">${esc(toTitle(app.name))||'—'}</div><div class="text-xs text-muted">${esc(app.email)}</div></td>
       <td><div>${esc(app.campus||'—')}</div></td>
       <td><span class="pdot pdot-${app.priority}"></span>${app.year||'—'}</td>
       <td>${app.gender?esc(app.gender):'—'}</td>
@@ -1510,7 +1557,7 @@ function renderResultsTable(filter) {
     const flag = r.flagged ? ' <span class="badge badge-yellow">3rd Eval</span>' : '';
     return `<tr>
       <td><strong>${i+1}</strong></td>
-      <td><div class="fw-600">${esc(app.name)}</div><div class="text-xs text-muted">${esc(app.email)}</div></td>
+      <td><div class="fw-600">${esc(toTitle(app.name))}</div><div class="text-xs text-muted">${esc(app.email)}</div></td>
       <td>${esc(app.campus||'—')}</td>
       <td>${app.year||'—'}</td>
       <td>${r.rawAvg.toFixed(2)}</td>
@@ -1579,8 +1626,15 @@ function jTab(t) {
   document.getElementById('jt-assigned').classList.toggle('hidden', t!=='assigned');
   document.getElementById('jt-completed').classList.toggle('hidden', t!=='completed');
   document.getElementById('jt-eval').classList.add('hidden');
+  // sync desktop nav-btns
   document.querySelectorAll('#jury-panel .nav-btn').forEach((el,i) =>
     el.classList.toggle('active', ['assigned','completed'][i] === t));
+  // sync mobile bottom tabs
+  document.querySelectorAll('.jury-mobile-tab').forEach((el,i) =>
+    el.classList.toggle('active', ['assigned','completed'][i] === t));
+  // show mobile nav (hidden during eval view)
+  const mobileNav = document.getElementById('jury-mobile-nav');
+  if (mobileNav) mobileNav.style.display = '';
   if (t==='assigned') renderPending();
   if (t==='completed') renderDone();
 }
@@ -1611,7 +1665,7 @@ function renderPending() {
     return `<div class="app-card" onclick="openEval(${app.id})">
       <div class="flex justify-between items-center flex-wrap gap-2">
         <div>
-          <div class="fw-600">${esc(app.name)||'—'}</div>
+          <div class="fw-600">${esc(toTitle(app.name))||'—'}</div>
           <div class="text-sm text-muted mt-1">${esc(campusMeta)}</div>
         </div>
         <div class="flex gap-2 items-center flex-wrap">
@@ -1637,7 +1691,7 @@ function renderDone() {
     <div class="app-card">
       <div class="flex justify-between items-center flex-wrap gap-2">
         <div>
-          <div class="fw-600">${esc(app.name)}</div>
+          <div class="fw-600">${esc(toTitle(app.name))}</div>
           <div class="text-sm text-muted">${esc(app.campus||'—')}${app.campusType ? ' · '+esc(app.campusType) : ''}</div>
         </div>
         <div class="flex gap-2 items-center">
@@ -1715,6 +1769,9 @@ async function openEval(appId) {
   document.getElementById('jt-assigned').classList.add('hidden');
   document.getElementById('jt-completed').classList.add('hidden');
   document.getElementById('jt-eval').classList.remove('hidden');
+  // hide mobile bottom nav during eval so it doesn't overlap scoring panel
+  const mobileNav = document.getElementById('jury-mobile-nav');
+  if (mobileNav) mobileNav.style.display = 'none';
 
   document.getElementById('eval-content').innerHTML = `
     <div style="overflow-y:auto;max-height:calc(100vh - 120px);padding-right:4px">
@@ -1723,7 +1780,7 @@ async function openEval(appId) {
       <div class="card mb-3">
         <div class="flex justify-between items-start flex-wrap gap-3">
           <div>
-            <h2 style="font-size:1.2rem">${esc(app.name||'—')}</h2>
+            <h2 style="font-size:1.2rem">${esc(toTitle(app.name)||'—')}</h2>
             <div class="text-sm text-muted mt-1">${campusMeta}</div>
           </div>
           <div class="flex gap-2 flex-wrap">
@@ -1734,10 +1791,12 @@ async function openEval(appId) {
 
         <!-- Quick Links — drive, github, portfolio, linkedin as buttons -->
         <div class="links-strip mt-3">
-          ${_evalUrls.drive     ? `<button class="btn btn-primary btn-sm" onclick="openEvalLink('drive')">📹 Video Responses</button>` : ''}
-          ${_evalUrls.github    ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('github')">GitHub (@${esc(gu)})</button>` : ''}
-          ${_evalUrls.portfolio ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('portfolio')">Portfolio</button>` : ''}
-          ${_evalUrls.linkedin  ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('linkedin')">LinkedIn</button>` : ''}
+          ${_evalUrls.drive
+            ? `<button class="btn btn-primary btn-sm" onclick="openEvalLink('drive')">▶ Video Responses</button>`
+            : `<button class="btn btn-ghost btn-sm" disabled style="opacity:0.45;cursor:default" title="No video link provided">▶ No Video Link</button>`}
+          ${_evalUrls.github    ? `<button class="btn btn-ghost btn-sm" onclick="openEvalLink('github')">GitHub (@${esc(gu)})</button>` : ''}
+          ${_evalUrls.portfolio ? `<button class="btn btn-ghost btn-sm" onclick="openEvalLink('portfolio')">Portfolio</button>` : ''}
+          ${_evalUrls.linkedin  ? `<button class="btn btn-ghost btn-sm" onclick="openEvalLink('linkedin')">LinkedIn</button>` : ''}
         </div>
       </div>
 
@@ -1751,9 +1810,16 @@ async function openEval(appId) {
       <div class="score-panel">
         <div class="fw-700 mb-1" style="font-size:0.95rem">Your Score</div>
         <div class="text-sm text-muted mb-3">Rate this applicant out of 7</div>
-        <div class="score-big" id="sc-disp">${existing ? existing.score : 4}<span class="score-denom">/7</span></div>
-        <input type="range" id="sc-range" min="1" max="7" step="1" value="${existing ? existing.score : 4}"
-          oninput="updScore(this.value)">
+        <div class="score-big" id="sc-disp">${existing
+          ? `${existing.score}<span class="score-denom">/7</span>`
+          : `<span style="color:var(--muted)">–</span><span class="score-denom">/7</span>`
+        }</div>
+        <input type="range" id="sc-range" min="1" max="7" step="1"
+          value="${existing ? existing.score : 4}"
+          data-touched="${existing ? '1' : '0'}"
+          oninput="this.dataset.touched='1';updScore(this.value)"
+          style="${existing ? '' : 'opacity:0.45'}"
+          title="${existing ? '' : 'Drag to set your score'}">
         <div class="flex justify-between text-xs text-muted mb-4">
           <span>1 — Weak</span><span>4 — Average</span><span>7 — Excellent</span>
         </div>
@@ -1791,9 +1857,12 @@ async function openEval(appId) {
           <label>Comments (optional)</label>
           <textarea id="sc-comments" rows="4" placeholder="Observations, reasoning, concerns...">${existing ? esc(existing.comments) : ''}</textarea>
         </div>
-        <button class="btn btn-primary btn-full" onclick="submitEval(${appId})">
+        <button class="btn btn-primary btn-full" id="btn-submit-eval"
+          onclick="submitEval(${appId})"
+          ${existing ? '' : 'disabled style="opacity:0.45;cursor:not-allowed"'}>
           ${existing ? 'Update Evaluation' : 'Submit Evaluation'}
         </button>
+        ${!existing ? `<div class="text-xs text-muted mt-2" style="text-align:center">Move the slider to set your score</div>` : ''}
         ${existing ? `<div class="text-xs text-muted mt-2" style="text-align:center">Previously submitted: ${existing.score}/7</div>` : ''}
       </div>
     </div>`;
@@ -1819,10 +1888,10 @@ function buildJuryFields(app) {
   // ── Build APPLICANT INFO section ──────────────────────────────
   // Order: Name, Campus, Graduation Year, TH Community in Campus
   const basicItems = [
-    { label: 'Name',                      val: app.name },
+    { label: 'Name',                      val: toTitle(app.name) },
     { label: 'Campus',                    val: campusDisplay },
     { label: 'Graduation Year',           val: app.year ? String(app.year) : '' },
-    { label: 'TH Community in Campus?',  val: rawVal(hIdx('does your campus have')) || storedVal('hasCommunity') },
+    { label: 'TinkerHub Community on Campus?',  val: rawVal(hIdx('does your campus have')) || storedVal('hasCommunity') },
   ];
 
   // ── Build APPLICATION RESPONSES section ─────────────────────
@@ -1859,7 +1928,11 @@ function ab(label, val) {
 // JURY — SUBMIT
 // ══════════════════════════════════════════════
 function submitEval(appId) {
-  const score    = +document.getElementById('sc-range').value;
+  const rangeEl  = document.getElementById('sc-range');
+  if (!rangeEl || rangeEl.dataset.touched !== '1') {
+    showToast('Please move the slider to set your score first.'); return;
+  }
+  const score    = +rangeEl.value;
   const comments = document.getElementById('sc-comments').value.trim();
   const isUpdate = !!getEval(+appId, S.user.id);
   S.evals[`${+appId}_${S.user.id}`] = { score, comments, ts: Date.now() };
@@ -1934,6 +2007,14 @@ function backToList() {
 function updScore(v) {
   const el = document.getElementById('sc-disp');
   if (el) el.innerHTML = v + '<span class="score-denom">/7</span>';
+  // remove the "unset" styling once slider is touched
+  const slider = document.getElementById('sc-range');
+  if (slider) slider.style.opacity = '';
+  const btn = document.getElementById('btn-submit-eval');
+  if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = ''; }
+  // hide the helper hint
+  const hint = btn && btn.nextElementSibling;
+  if (hint && hint.classList.contains('text-xs')) hint.style.display = 'none';
 }
 function toggleEvalGuide() {
   const g = document.getElementById('eval-guide');
