@@ -69,18 +69,26 @@ export default async function handler(req, res) {
       let payload;
 
       if (body._juryOnly) {
-        // Jury save: only merge evals into existing state — never overwrite
-        // apps, headers, jury, assignments (those are admin-managed data)
+        // Jury save: merge evals + assignments into existing state.
+        // Never overwrite apps/headers/jury (those are admin-managed).
+        // Assignments are merged by taking the longer array per app (more assigned = better).
         const record = await getRecord();
         const existing = record?.fields?.Config ? JSON.parse(record.fields.Config) : {};
-        const merged = { ...existing, evals: body.evals, _savedAt: body._savedAt };
+        const existingAssign = existing.assignments || {};
+        const newAssign      = body.assignments    || {};
+        const mergedAssign   = { ...existingAssign };
+        for (const [appId, jids] of Object.entries(newAssign)) {
+          const prev = existingAssign[appId] || [];
+          mergedAssign[appId] = jids.length >= prev.length ? jids : prev;
+        }
+        const merged = { ...existing, evals: body.evals, assignments: mergedAssign, _savedAt: body._savedAt };
         payload = JSON.stringify(merged);
       } else {
         // Admin/full save: keep only the fields needed for the jury list view.
         // Everything else (text answers, links) is fetched live from Airtable
         // when a jury member opens an app. This keeps the payload well under
         // Airtable's 100K character limit even with 300+ apps.
-        const KEEP = new Set(['id','airtableId','name','campus','campusType','year','priority','gender','isRejected']);
+        const KEEP = new Set(['id','airtableId','name','campus','campusType','year','priority','gender','isRejected','email']);
         const appsToStore = (body.apps || []).map(a => {
           const cleaned = {};
           for (const k of KEEP) { if (a[k] !== undefined) cleaned[k] = a[k]; }

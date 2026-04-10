@@ -548,10 +548,10 @@ input[type=range] { width: 100%; accent-color: var(--orange); cursor: pointer; m
         </div>
       </div>
       <div class="tabs">
+        <button class="tab active" onclick="rTab('all')">All Evaluated</button>
         <button class="tab" onclick="rTab('shortlisted')">Shortlisted (avg &gt; 3)</button>
         <button class="tab" onclick="rTab('ideal')">Ideal (avg &gt; 5)</button>
         <button class="tab" onclick="rTab('flagged')">Flagged — 3rd Evaluator</button>
-        <button class="tab active" onclick="rTab('all')">All Evaluated</button>
       </div>
       <div class="card">
         <div class="tbl-wrap">
@@ -707,9 +707,10 @@ async function syncToServer() {
   if (_syncInFlight) return;
   _syncInFlight = true;
   try {
-    // Jury members only push their eval scores — never overwrite apps/campus/assignments
+    // Jury members push evals + assignments (assignments needed for 3rd-jury auto-assign sync).
+    // They never overwrite apps/campus/headers which are admin-managed data.
     const payload = (S.user && S.user.role === 'jury')
-      ? { evals: S.evals, _juryOnly: true }
+      ? { evals: S.evals, assignments: S.assignments, _juryOnly: true }
       : statePayload();
     const resp = await fetch('/api/state', {
       method: 'POST',
@@ -1486,7 +1487,7 @@ function renderJuryFull() {
 // ══════════════════════════════════════════════
 function rTab(t) {
   document.querySelectorAll('#at-results .tab').forEach((el,i) => {
-    el.classList.toggle('active', ['shortlisted','ideal','flagged','all'][i] === t);
+    el.classList.toggle('active', ['all','shortlisted','ideal','flagged'][i] === t);
   });
   renderResultsTable(t);
 }
@@ -1654,9 +1655,9 @@ function renderDone() {
 async function openEval(appId) {
   const app = S.apps.find(a=>a.id===+appId); if (!app) return;
 
-  // If key fields are missing (other device, no raw) fetch them live from Airtable.
-  // github and drive are now stripped from server state to save space, so check those too.
-  if (!app.raw && app.airtableId && (!app.vision || !app.github || !app.drive)) {
+  // Fetch full app details from Airtable if not on the device that uploaded the CSV.
+  // github/drive/portfolio/linkedin/text-answers are stripped from server state to save space.
+  if (!app.raw && app.airtableId && (!app.vision || !app.github || !app.portfolio)) {
     try {
       const resp = await fetch(`${AT_ENDPOINT}?recordId=${encodeURIComponent(app.airtableId)}`);
       if (resp.ok) {
@@ -1664,36 +1665,52 @@ async function openEval(appId) {
         if (data.headers && data.rows && data.rows[0]) {
           const cm2 = detectColumns(data.headers);
           const row = data.rows[0];
-          app.vision     = row[cm2.VISION]     || '';
-          app.challenges = row[cm2.CHALLENGES] || '';
-          app.about      = row[cm2.ABOUT]      || '';
-          app.why        = row[cm2.WHY]        || '';
-          app.community  = row[cm2.COMMUNITY]  || '';
-          if (!app.drive) app.drive = fixUrl(row[cm2.DRIVE] || '');
-          if (!app.github) app.github = row[cm2.GITHUB] || '';
+          app.vision      = row[cm2.VISION]        || '';
+          app.challenges  = row[cm2.CHALLENGES]    || '';
+          app.about       = row[cm2.ABOUT]         || '';
+          app.why         = row[cm2.WHY]           || '';
+          app.community   = row[cm2.COMMUNITY]     || '';
+          app.videoReason = row[cm2.VIDEO_REASON]  || '';
+          app.hasCommunity= row[cm2.HAS_COMMUNITY] || '';
+          app.institution = row[cm2.INSTITUTION]   || '';
+          if (!app.drive)     app.drive     = fixUrl(row[cm2.DRIVE]     || '');
+          if (!app.github)    app.github    = row[cm2.GITHUB]    || '';
+          if (!app.portfolio) app.portfolio = row[cm2.PORTFOLIO] || '';
+          if (!app.linkedin)  app.linkedin  = row[cm2.LINKEDIN]  || '';
         }
       }
     } catch(e) { console.warn('Could not fetch app details:', e.message); }
+  } else if (app.raw) {
+    // Device with raw — populate extra fields from raw if not already set
+    if (!app.videoReason)  app.videoReason  = col('VIDEO_REASON')  >= 0 ? (app.raw[col('VIDEO_REASON')]  || '') : '';
+    if (!app.hasCommunity) app.hasCommunity = col('HAS_COMMUNITY') >= 0 ? (app.raw[col('HAS_COMMUNITY')] || '') : '';
+    if (!app.portfolio)    app.portfolio    = col('PORTFOLIO')      >= 0 ? (app.raw[col('PORTFOLIO')]     || '') : '';
+    if (!app.linkedin)     app.linkedin     = col('LINKEDIN')       >= 0 ? (app.raw[col('LINKEDIN')]      || '') : '';
   }
 
   const j = S.user;
   const existing = getEval(+appId, j.id);
   const gu = ghUser(app.github);
 
-  // Store URLs in global so onclick buttons can access them safely
-  // For drive: prefer stored app.drive, fall back to raw column, then stored drive field
-  const rawDrive     = app.raw && col('DRIVE')>=0     ? fixUrl(app.raw[col('DRIVE')])      : '';
-  const portfolioUrl = app.raw && col('PORTFOLIO')>=0 ? fixUrl(app.raw[col('PORTFOLIO')]) : '';
-  const linkedinUrl  = app.raw && col('LINKEDIN')>=0  ? fixUrl(app.raw[col('LINKEDIN')])  : '';
+  // Build URLs — raw takes priority, stored fields are fallback
+  const rawDrive = app.raw && col('DRIVE')>=0 ? fixUrl(app.raw[col('DRIVE')]) : '';
   _evalUrls = {
     drive:     fixUrl(app.drive) || rawDrive,
     github:    fixUrl(app.github),
-    portfolio: portfolioUrl,
-    linkedin:  linkedinUrl
+    portfolio: fixUrl(app.portfolio),
+    linkedin:  fixUrl(app.linkedin),
   };
 
   const studyYear = yearToStudy(app.year);
   const yearLabel = app.year ? `${app.year}${studyYear ? ' · ' + studyYear : ''}` : '';
+
+  // Campus stats
+  const sameCampus   = S.apps.filter(a => a.campus === app.campus && !a.isRejected);
+  const campusCount  = sameCampus.length;
+  const campusEvaled = sameCampus.filter(a => appResult(a.id)?.complete).length;
+  const campusMeta   = app.campus
+    ? `${esc(app.campus)}${campusCount > 1 ? ` · <strong>${campusCount}</strong> applicants from this campus${campusEvaled ? ', <strong>'+campusEvaled+'</strong> evaluated' : ''}` : ''}`
+    : '—';
 
   document.getElementById('jt-assigned').classList.add('hidden');
   document.getElementById('jt-completed').classList.add('hidden');
@@ -1707,7 +1724,7 @@ async function openEval(appId) {
         <div class="flex justify-between items-start flex-wrap gap-3">
           <div>
             <h2 style="font-size:1.2rem">${esc(app.name||'—')}</h2>
-            <div class="text-sm text-muted mt-1">${esc(app.campus||'—')}${app.campusType ? ' · <em>'+esc(app.campusType)+'</em>' : ''}${app.campus && S.apps.filter(a=>a.campus===app.campus).length>1 ? ' · '+S.apps.filter(a=>a.campus===app.campus).length+' applicants from this campus' : ''}</div>
+            <div class="text-sm text-muted mt-1">${campusMeta}</div>
           </div>
           <div class="flex gap-2 flex-wrap">
             ${yearLabel ? `<span class="badge badge-${app.priority==='high'?'green':app.priority==='medium'?'orange':'gray'}">${yearLabel}</span>` : ''}
@@ -1715,12 +1732,12 @@ async function openEval(appId) {
           </div>
         </div>
 
-        <!-- Quick Links — use onclick buttons, not <a href>, for reliability across environments -->
+        <!-- Quick Links — drive, github, portfolio, linkedin as buttons -->
         <div class="links-strip mt-3">
-          ${_evalUrls.drive    ? `<button class="btn btn-primary btn-sm" onclick="openEvalLink('drive')">Open Drive / Video Responses</button>` : ''}
-          ${_evalUrls.github   ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('github')">View GitHub &nbsp;(@${esc(gu)})</button>` : ''}
-          ${_evalUrls.portfolio? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('portfolio')">Portfolio</button>` : ''}
-          ${_evalUrls.linkedin ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('linkedin')">LinkedIn</button>` : ''}
+          ${_evalUrls.drive     ? `<button class="btn btn-primary btn-sm" onclick="openEvalLink('drive')">📹 Video Responses</button>` : ''}
+          ${_evalUrls.github    ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('github')">GitHub (@${esc(gu)})</button>` : ''}
+          ${_evalUrls.portfolio ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('portfolio')">Portfolio</button>` : ''}
+          ${_evalUrls.linkedin  ? `<button class="btn btn-ghost btn-sm"   onclick="openEvalLink('linkedin')">LinkedIn</button>` : ''}
         </div>
       </div>
 
@@ -1741,12 +1758,33 @@ async function openEval(appId) {
           <span>1 — Weak</span><span>4 — Average</span><span>7 — Excellent</span>
         </div>
         <div style="background:var(--bg);border-radius:var(--radius);padding:12px;margin-bottom:14px">
-          <div class="text-xs fw-600 mb-2" style="text-transform:uppercase;letter-spacing:0.4px">Scoring Guide</div>
+          <div class="flex justify-between items-center mb-2">
+            <div class="text-xs fw-600" style="text-transform:uppercase;letter-spacing:0.4px">Scoring Guide</div>
+            <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:2px 8px" onclick="toggleEvalGuide()">How to Evaluate ℹ️</button>
+          </div>
           <div class="text-xs" style="line-height:2;color:var(--muted)">
             1 – 2 &nbsp; Weak fit, unclear vision<br>
             3 – 4 &nbsp; Average, some potential<br>
             5 – 6 &nbsp; Strong community drive<br>
             7 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Exceptional — ideal lead
+          </div>
+          <div id="eval-guide" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+            <div class="text-xs fw-600 mb-1" style="color:var(--orange)">What to evaluate</div>
+            <div class="text-xs" style="line-height:1.7;color:var(--muted)">
+              • <b>Vision</b> — Is it realistic and campus-specific?<br>
+              • <b>Challenges</b> — Have they thought through blockers?<br>
+              • <b>Community drive</b> — Past initiative, leadership energy?<br>
+              • <b>Why TinkerHub</b> — Genuine understanding, not generic?<br>
+              • <b>Background</b> — Skills, projects, learning mindset?
+            </div>
+            <div class="text-xs fw-600 mb-1 mt-2" style="color:var(--orange)">Things to remember</div>
+            <div class="text-xs" style="line-height:1.7;color:var(--muted)">
+              • Evaluate the <b>person's potential</b>, not just polished writing<br>
+              • Watch the drive video before scoring if available<br>
+              • A gap of ≥ 3 between two jury scores triggers a 3rd evaluator<br>
+              • You can update your score before results are finalised<br>
+              • Add comments to explain extreme scores (1–2 or 7)
+            </div>
           </div>
         </div>
         <div class="fg">
@@ -1762,56 +1800,53 @@ async function openEval(appId) {
 }
 
 function buildJuryFields(app) {
-  // Helper: find index in stripped headers by partial match
+  // Helper: find index in S.headers (stripped, no _airtable_id) by partial match
   function hIdx(term) {
     return S.headers.findIndex(h => h.toLowerCase().includes(term.toLowerCase()));
   }
+  // Read from app.raw (stripped row) if available
   function rawVal(i) { return i >= 0 && app.raw ? (app.raw[i] || '').trim() : ''; }
+  // Fallback: use stored field on app object (populated by live Airtable fetch in openEval)
+  function storedVal(key) { return (app[key] || '').trim(); }
 
-  // ── Campus with "Other" fallback to Institution Name ──────────
-  const campusIdx = hIdx('name (from campus');
-  const instIdx   = hIdx('institution name') >= 0 ? hIdx('institution name') : hIdx('college name');
-  let campusVal = rawVal(campusIdx);
-  if (!campusVal || campusVal.toLowerCase() === 'other') {
-    campusVal = rawVal(instIdx) || campusVal;
+  // ── Campus: use Name (from Campus Name), fall back to Institution Name if "Other" ──
+  let campusDisplay = rawVal(hIdx('name (from campus')) || storedVal('campus');
+  if (!campusDisplay || campusDisplay.toLowerCase() === 'other') {
+    const inst = rawVal(hIdx('institution name')) || storedVal('institution');
+    campusDisplay = inst || campusDisplay;
   }
 
-  // ── Whitelist: exactly what jury sees, in this order ─────────
-  // Name uses app.name directly (same source as the header) to avoid column mismatch.
-  // Drive Link is shown as a button in the header, not as a text field here.
-  const JURY_WHITELIST = [
-    { label: 'Name',              val: app.name },
-    { label: 'Campus',            val: campusVal || app.campus },
-    { label: 'Vision',            idx: hIdx("what's your vision") >= 0 ? hIdx("what's your vision") : hIdx('vision for integrat') },
-    { label: 'Challenges',        idx: hIdx('challenges you foresee') >= 0 ? hIdx('challenges you foresee') : hIdx('challenges') },
-    { label: 'About You',         idx: hIdx('tell us about you') >= 0 ? hIdx('tell us about you') : hIdx('shaped you') },
-    { label: 'Why TinkerHub?',    idx: hIdx('why the tinkerhub') >= 0 ? hIdx('why the tinkerhub') : hIdx('why tinkerhub') },
-    { label: 'Community Experience', idx: hIdx('have you led or been') >= 0 ? hIdx('have you led or been') : hIdx('led or been part') },
+  // ── Build APPLICANT INFO section ──────────────────────────────
+  // Order: Name, Campus, Graduation Year, TH Community in Campus
+  const basicItems = [
+    { label: 'Name',                      val: app.name },
+    { label: 'Campus',                    val: campusDisplay },
+    { label: 'Graduation Year',           val: app.year ? String(app.year) : '' },
+    { label: 'TH Community in Campus?',  val: rawVal(hIdx('does your campus have')) || storedVal('hasCommunity') },
   ];
 
-  // ── Stored fields fallback (used when app.raw is null on other devices) ──
-  const storedFields = {
-    'Vision':               app.vision     || '',
-    'Challenges':           app.challenges || '',
-    'About You':            app.about      || '',
-    'Why TinkerHub?':       app.why        || '',
-    'Community Experience': app.community  || '',
-  };
+  // ── Build APPLICATION RESPONSES section ─────────────────────
+  // Order matches user's requirement: d, e, f, g, h, i
+  const responseItems = [
+    { label: 'Video Format — Reason',    val: rawVal(hIdx('let us know what your reason')) || storedVal('videoReason') },
+    { label: 'Vision',                   val: rawVal(hIdx("what's your vision"))           || storedVal('vision') },
+    { label: 'Challenges',               val: rawVal(hIdx('challenges you foresee')) || rawVal(hIdx('challenges')) || storedVal('challenges') },
+    { label: 'About You',                val: rawVal(hIdx('tell us about you')) || rawVal(hIdx('shaped you'))       || storedVal('about') },
+    { label: 'Why TinkerHub?',           val: rawVal(hIdx('why the tinkerhub')) || rawVal(hIdx('why tinkerhub'))   || storedVal('why') },
+    { label: 'Community Experience',     val: rawVal(hIdx('led or been part'))  || rawVal(hIdx('learning activities')) || storedVal('community') },
+  ];
 
-  const basics = [], answers = [];
-  JURY_WHITELIST.forEach(({ label, idx, val }) => {
-    // Prefer explicit val, then raw column value, then stored field
-    let v = val !== undefined ? val : rawVal(idx);
-    if (!v && storedFields[label] !== undefined) v = storedFields[label];
-    if (!v) return;
-    const block = `<div class="answer-box"><div class="answer-q">${esc(label)}</div><div class="answer-a">${esc(v)}</div></div>`;
-    if (['Name','Campus'].includes(label)) basics.push(block);
-    else answers.push(block);
-  });
+  function block(label, val) {
+    if (!val) return '';
+    return `<div class="answer-box"><div class="answer-q">${esc(label)}</div><div class="answer-a">${esc(val)}</div></div>`;
+  }
+
+  const basicsHtml   = basicItems.map(({label,val})   => block(label, val)).join('');
+  const responsesHtml= responseItems.map(({label,val}) => block(label, val)).join('');
 
   let html = '';
-  if (basics.length)  html += `<div class="card mb-3"><div class="section-head">Applicant Info</div>${basics.join('')}</div>`;
-  if (answers.length) html += `<div class="card"><div class="section-head">Application Responses</div>${answers.join('')}</div>`;
+  if (basicsHtml)    html += `<div class="card mb-3"><div class="section-head">Applicant Info</div>${basicsHtml}</div>`;
+  if (responsesHtml) html += `<div class="card"><div class="section-head">Application Responses</div>${responsesHtml}</div>`;
   return html || '<div class="card"><div class="empty-state">No fields found.</div></div>';
 }
 
@@ -1826,15 +1861,13 @@ function ab(label, val) {
 function submitEval(appId) {
   const score    = +document.getElementById('sc-range').value;
   const comments = document.getElementById('sc-comments').value.trim();
+  const isUpdate = !!getEval(+appId, S.user.id);
   S.evals[`${+appId}_${S.user.id}`] = { score, comments, ts: Date.now() };
   save();
 
-  // Push to Airtable (non-blocking — runs in background)
-  pushEvalToAirtable(+appId);
-
-  // Auto-assign 3rd evaluator if flagged
+  // Auto-assign 3rd evaluator if scores are far apart
   const r = appResult(+appId);
-  let msg = `Score submitted: ${score}/7`;
+  let thirdJuryMsg = '';
   if (r && r.flagged) {
     const cur = S.assignments[+appId] || [];
     if (cur.length === 2) {
@@ -1846,14 +1879,47 @@ function submitEval(appId) {
           return la <= lb ? a : b;
         });
         S.assignments[+appId] = [...cur, lo.id];
-        save();
+        save(); // syncs assignments to server via _juryOnly (now includes assignments)
+        thirdJuryMsg = `\n\nScore gap ≥ 3 detected. A third evaluator (${esc(lo.name||lo.email)}) has been assigned.`;
       }
     }
-    msg += '\n\nNote: Score difference is 3 or more. A third evaluator has been assigned to this application.';
   }
 
-  alert(msg);
+  // Push to Airtable AFTER auto-assign so the 3rd jury name is captured
+  pushEvalToAirtable(+appId);
+
+  // Show confetti + toast instead of alert
+  showConfetti();
+  showToast(isUpdate ? `Score updated: ${score}/7` : `Score submitted: ${score}/7${thirdJuryMsg}`);
   backToList();
+}
+
+function showConfetti() {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const pieces = Array.from({length:80}, () => ({
+    x: Math.random()*canvas.width, y: -10,
+    r: Math.random()*6+3, dx: (Math.random()-0.5)*4,
+    dy: Math.random()*4+2, rot: Math.random()*360,
+    color: ['#f97316','#22c55e','#3b82f6','#a855f7','#eab308'][Math.floor(Math.random()*5)]
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p => {
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.r,-p.r/2,p.r*2,p.r);
+      ctx.restore();
+      p.x+=p.dx; p.y+=p.dy; p.rot+=3; p.dy+=0.05;
+    });
+    frame++;
+    if (frame < 90) requestAnimationFrame(draw);
+    else document.body.removeChild(canvas);
+  }
+  draw();
 }
 
 function backToList() {
@@ -1868,6 +1934,10 @@ function backToList() {
 function updScore(v) {
   const el = document.getElementById('sc-disp');
   if (el) el.innerHTML = v + '<span class="score-denom">/7</span>';
+}
+function toggleEvalGuide() {
+  const g = document.getElementById('eval-guide');
+  if (g) g.style.display = g.style.display === 'none' ? 'block' : 'none';
 }
 
 // ══════════════════════════════════════════════
