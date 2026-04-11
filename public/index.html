@@ -1208,17 +1208,24 @@ function doAssign() {
   S.jury.forEach(j => load[j.id] = 0);
   S.assignments = {};
 
+  let campusFallbackWarning = false;
   for (const app of sorted) {
     const ac = (app.campus || app.institution || '').toLowerCase().trim();
     const eligible = S.jury.filter(j => {
       const jc = (j.campus || '').toLowerCase().trim();
       return !ac || !jc || jc !== ac;
     });
+    // Only fall back to all jury if there genuinely aren't 2 eligible non-same-campus members
     const pool = (eligible.length >= 2 ? eligible : S.jury)
       .slice()
       .sort((a,b) => load[a.id] - load[b.id]);
+    if (eligible.length < 2) campusFallbackWarning = true;
     S.assignments[app.id] = [pool[0].id, pool[1].id];
     S.assignments[app.id].forEach(jid => load[jid]++);
+  }
+  if (campusFallbackWarning) {
+    const warnEl = document.getElementById('assign-msg');
+    if (warnEl) warnEl.innerHTML += '<div class="callout callout-yellow mt-2" style="margin-top:8px">⚠️ Some applicants could not avoid same-campus jury due to insufficient eligible members — check assignments manually.</div>';
   }
 
   save();
@@ -1944,7 +1951,15 @@ function submitEval(appId) {
   if (r && r.flagged) {
     const cur = S.assignments[+appId] || [];
     if (cur.length === 2) {
-      const eligible = S.jury.filter(j => !cur.includes(j.id));
+      const appForCampus = S.apps.find(a => a.id === +appId);
+      const ac3 = (appForCampus?.campus || appForCampus?.institution || '').toLowerCase().trim();
+      let eligible = S.jury.filter(j => {
+        if (cur.includes(j.id)) return false;
+        const jc = (j.campus || '').toLowerCase().trim();
+        return !ac3 || !jc || jc !== ac3;
+      });
+      // Fallback: if no campus-safe member is available, allow any non-assigned jury
+      if (!eligible.length) eligible = S.jury.filter(j => !cur.includes(j.id));
       if (eligible.length) {
         const lo = eligible.reduce((a,b) => {
           const la = Object.values(S.assignments).filter(x=>x.includes(a.id)).length;
